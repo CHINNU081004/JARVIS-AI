@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=JARVIS
+Comment=Native Futuristic AI Desktop Assistant
+Exec=/usr/bin/jarvis
+Icon=jarvis
+Terminal=false
+Type=Application
+Categories=Utility;Development;
+Keywords=AI;Assistant;Ollama;LLM;Hologram;
+StartupNotify=true
