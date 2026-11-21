@@ -94,16 +94,33 @@ void OllamaAdapter::discoverModels() {
             info.quantization = details.value("quantization_level").toString();
             info.format = details.value("format").toString();
 
+            // Native capabilities array from Ollama v0.40+ (e.g. ["completion", "vision", "tools", "thinking"])
+            QJsonArray capsArray = mObj.value("capabilities").toArray();
+            bool hasCaps = !capsArray.isEmpty();
+            bool canVision = false;
+            bool canTools = false;
+
+            for (const auto& cVal : capsArray) {
+                QString cap = cVal.toString().toLower();
+                if (cap == "vision") canVision = true;
+                if (cap == "tools") canTools = true;
+            }
+
             // Capability heuristics
             info.capabilities.streaming = CapabilityState::Supported;
-            info.capabilities.exactMetrics = true; // Ollama reports accurate eval_count and prompt_eval_count
+            info.capabilities.exactMetrics = true;
 
-            // Vision detection check (e.g., llava, bakllava, minicpm-v, vision)
             QString idLower = info.id.toLower();
-            if (idLower.contains("vision") || idLower.contains("llava") || idLower.contains("minicpm-v")) {
+            if (canVision || idLower.contains("vision") || idLower.contains("llava") || idLower.contains("minicpm-v")) {
                 info.capabilities.vision = CapabilityState::Supported;
             } else {
                 info.capabilities.vision = CapabilityState::Unsupported;
+            }
+
+            if (canTools || idLower.contains("tools") || idLower.contains("coder")) {
+                info.capabilities.toolCalling = CapabilityState::Supported;
+            } else {
+                info.capabilities.toolCalling = hasCaps ? CapabilityState::Unsupported : CapabilityState::Unknown;
             }
 
             discovered.append(info);
@@ -121,6 +138,7 @@ void OllamaAdapter::generateChatResponse(const QString& modelId,
 
     m_activeModelId = modelId;
     m_accumulatedResponse.clear();
+    m_streamBuffer.clear();
     m_promptTokens = 0;
     m_evalTokens = 0;
     m_evalDurationNs = 0;
@@ -165,8 +183,13 @@ void OllamaAdapter::generateChatResponse(const QString& modelId,
 void OllamaAdapter::onStreamReadyRead() {
     if (!m_currentReply) return;
 
-    while (m_currentReply->canReadLine()) {
-        QByteArray line = m_currentReply->readLine().trimmed();
+    m_streamBuffer.append(m_currentReply->readAll());
+
+    int newlineIdx = -1;
+    while ((newlineIdx = m_streamBuffer.indexOf('\n')) != -1) {
+        QByteArray line = m_streamBuffer.left(newlineIdx).trimmed();
+        m_streamBuffer.remove(0, newlineIdx + 1);
+
         if (line.isEmpty()) continue;
 
         QJsonDocument doc = QJsonDocument::fromJson(line);

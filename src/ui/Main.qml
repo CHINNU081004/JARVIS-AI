@@ -111,13 +111,54 @@ ApplicationWindow {
             // Model Selection Dropdown
             ComboBox {
                 id: modelCombo
-                model: jarvis.getDiscoveredModels()
-                textRole: "name"
-                implicitWidth: 190
+                model: jarvis.modelListModel
+                textRole: "displayName"
+                valueRole: "id"
+                implicitWidth: 220
                 implicitHeight: 34
-                onActivated: {
-                    var sel = model.get ? model.get(currentIndex).id : model[currentIndex].id;
-                    jarvis.selectModel(sel);
+
+                currentIndex: jarvis.modelListModel.indexOf(jarvis.selectedModelId)
+
+                onActivated: (index) => {
+                    var selId = jarvis.modelListModel.idAt(index);
+                    if (selId !== "") {
+                        jarvis.selectModel(selId);
+                    }
+                }
+
+                background: Rectangle {
+                    implicitWidth: 220
+                    implicitHeight: 34
+                    radius: 10
+                    color: "#0c1b3d"
+                    border.color: "#00f0ff"
+                    border.width: 1
+                }
+
+                contentItem: Text {
+                    leftPadding: 12
+                    rightPadding: modelCombo.indicator.width + 10
+                    text: modelCombo.displayText !== "" ? modelCombo.displayText : "No models found"
+                    font.pixelSize: 12
+                    font.bold: true
+                    color: modelCombo.count > 0 ? "#00f0ff" : "#64748b"
+                    verticalAlignment: Text.AlignVCenter
+                    elide: Text.ElideRight
+                }
+
+                delegate: ItemDelegate {
+                    width: modelCombo.width
+                    height: 36
+                    contentItem: Text {
+                        text: model.displayName
+                        color: highlighted ? "#00f0ff" : "#f8fafc"
+                        font.pixelSize: 12
+                        verticalAlignment: Text.AlignVCenter
+                        elide: Text.ElideRight
+                    }
+                    background: Rectangle {
+                        color: highlighted ? "#1e3a8a" : "#0c1b3d"
+                    }
                 }
             }
 
@@ -545,6 +586,25 @@ ApplicationWindow {
                     color: "#00f0ff"
                     font.bold: true
                     font.pixelSize: 14
+                }
+
+                RowLayout {
+                    Text { text: "Active Provider:"; color: "#38bdf8"; font.bold: true; Layout.preferredWidth: 160 }
+                    GlassButton {
+                        text: "Local Ollama"
+                        isSecondary: jarvis.selectedProviderId !== "ollama_local"
+                        onClicked: jarvis.selectProvider("ollama_local")
+                    }
+                    GlassButton {
+                        text: "Remote Ollama"
+                        isSecondary: jarvis.selectedProviderId !== "ollama_remote"
+                        onClicked: jarvis.selectProvider("ollama_remote")
+                    }
+                    GlassButton {
+                        text: "OpenAI API"
+                        isSecondary: jarvis.selectedProviderId !== "generic_api"
+                        onClicked: jarvis.selectProvider("generic_api")
+                    }
                 }
 
                 RowLayout {

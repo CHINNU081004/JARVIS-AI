@@ -239,6 +239,18 @@ void JarvisController::selectProvider(const QString& providerId) {
         m_selectedProviderId = providerId;
         emit providerChanged();
         logEvent("INFO", "Provider Changed", QString("Active provider switched to %1").arg(providerId), "Provider");
+
+        // Update model list for this provider
+        QList<ModelInfo> currentProviderModels;
+        for (const auto& m : m_allModels) {
+            if (m.providerId == m_selectedProviderId) {
+                currentProviderModels.append(m);
+            }
+        }
+        m_modelListModel.setModels(currentProviderModels);
+        m_selectedModelId = currentProviderModels.isEmpty() ? QString() : currentProviderModels.first().id;
+        emit modelChanged();
+
         testActiveProvider();
         refreshModels();
     }
@@ -431,8 +443,29 @@ void JarvisController::onModelsDiscovered(const QList<ModelInfo>& models) {
                       m_allModels.end());
     m_allModels.append(models);
 
-    if (!models.isEmpty() && m_selectedModelId.isEmpty()) {
-        m_selectedModelId = models.first().id;
+    // Update typed model list for UI
+    QList<ModelInfo> currentProviderModels;
+    for (const auto& m : m_allModels) {
+        if (m.providerId == m_selectedProviderId) {
+            currentProviderModels.append(m);
+        }
+    }
+    m_modelListModel.setModels(currentProviderModels);
+
+    // Preserve selected model if still in list, else default to first available
+    bool selectedStillExists = false;
+    for (const auto& m : currentProviderModels) {
+        if (m.id == m_selectedModelId) {
+            selectedStillExists = true;
+            break;
+        }
+    }
+
+    if (!selectedStillExists && !currentProviderModels.isEmpty()) {
+        m_selectedModelId = currentProviderModels.first().id;
+        emit modelChanged();
+    } else if (currentProviderModels.isEmpty()) {
+        m_selectedModelId.clear();
         emit modelChanged();
     }
 

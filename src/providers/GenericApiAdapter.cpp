@@ -102,6 +102,7 @@ void GenericApiAdapter::generateChatResponse(const QString& modelId,
 
     m_activeModelId = modelId;
     m_accumulatedResponse.clear();
+    m_streamBuffer.clear();
     m_promptTokens = 0;
     m_completionTokens = 0;
     m_wasCancelled = false;
@@ -145,8 +146,13 @@ void GenericApiAdapter::generateChatResponse(const QString& modelId,
 void GenericApiAdapter::onStreamReadyRead() {
     if (!m_currentReply) return;
 
-    while (m_currentReply->canReadLine()) {
-        QByteArray line = m_currentReply->readLine().trimmed();
+    m_streamBuffer.append(m_currentReply->readAll());
+
+    int newlineIdx = -1;
+    while ((newlineIdx = m_streamBuffer.indexOf('\n')) != -1) {
+        QByteArray line = m_streamBuffer.left(newlineIdx).trimmed();
+        m_streamBuffer.remove(0, newlineIdx + 1);
+
         if (line.isEmpty()) continue;
         if (line.startsWith("data: ")) {
             line = line.mid(6).trimmed();

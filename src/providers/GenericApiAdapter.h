@@ -42,6 +42,7 @@ private:
     QElapsedTimer m_generationTimer;
     QString m_activeModelId;
     QString m_accumulatedResponse;
+    QByteArray m_streamBuffer;
     qint64 m_promptTokens = 0;
     qint64 m_completionTokens = 0;
     bool m_wasCancelled = false;

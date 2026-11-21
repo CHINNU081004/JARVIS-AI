@@ -3,6 +3,7 @@
 #include "workspace/WorkspaceManager.h"
 #include "core/RoutingEngine.h"
 #include "core/MetricsCollector.h"
+#include "core/ModelListModel.h"
 #include "providers/OllamaAdapter.h"
 #include "providers/GenericApiAdapter.h"
 
@@ -21,12 +22,14 @@ private slots:
     void testMetricsCalculation();
     void testRamMonitoringParser();
     void testNetworkMonitoringParser();
+    void testModelListModelRolesAndSelection();
     void testOllamaAdapterOfflineHandling();
     void testGenericApiAdapterOfflineHandling();
+    void testRealOllamaInferenceIfAvailable();
 };
 
 void TestJarvisPhase1::initTestCase() {
-    qDebug() << "Initializing JARVIS Phase 1.1 Verification Test Suite";
+    qDebug() << "Initializing JARVIS Phase 1.2 Verification Test Suite";
 }
 
 void TestJarvisPhase1::testDatabaseOperations() {
@@ -156,6 +159,7 @@ void TestJarvisPhase1::testRoutingDeterministicRules() {
     QCOMPARE(coderChosen, QString("qwen2.5-coder:latest"));
 
     // 3. Auto-routing matches vision task
+    router.setAutoRoutingEnabled(true);
     QString visionChosen = router.resolveModel("", "Analyze this screenshot image", models);
     QCOMPARE(visionChosen, QString("llava:latest"));
 }
@@ -222,6 +226,39 @@ void TestJarvisPhase1::testNetworkMonitoringParser() {
     QCOMPARE(statsReset.totalKbps, 0.0);
 }
 
+void TestJarvisPhase1::testModelListModelRolesAndSelection() {
+    Jarvis::ModelListModel listModel;
+
+    QList<Jarvis::ModelInfo> testModels;
+    Jarvis::ModelInfo m1;
+    m1.id = "gemma3:4b";
+    m1.name = "gemma3:4b";
+    m1.quantization = "Q4_K_M";
+    m1.capabilities.vision = Jarvis::CapabilityState::Supported;
+    testModels.append(m1);
+
+    Jarvis::ModelInfo m2;
+    m2.id = "qwen3.5:4b";
+    m2.name = "qwen3.5:4b";
+    m2.quantization = "Q4_K_M";
+    m2.capabilities.toolCalling = Jarvis::CapabilityState::Supported;
+    testModels.append(m2);
+
+    listModel.setModels(testModels);
+    QCOMPARE(listModel.rowCount(), 2);
+
+    // Test lookup by ID
+    QCOMPARE(listModel.indexOf("qwen3.5:4b"), 1);
+    QCOMPARE(listModel.idAt(0), QString("gemma3:4b"));
+    QCOMPARE(listModel.idAt(1), QString("qwen3.5:4b"));
+    QCOMPARE(listModel.nameAt(0), QString("gemma3:4b"));
+
+    // Verify role data
+    QModelIndex idx0 = listModel.index(0, 0);
+    QCOMPARE(listModel.data(idx0, Jarvis::ModelListModel::DisplayNameRole).toString(), QString("gemma3:4b (Q4_K_M)"));
+    QCOMPARE(listModel.data(idx0, Jarvis::ModelListModel::HasVisionRole).toBool(), true);
+}
+
 void TestJarvisPhase1::testOllamaAdapterOfflineHandling() {
     Jarvis::OllamaAdapter adapter("ollama_test", "http://127.0.0.1:65530");
     QSignalSpy spy(&adapter, &Jarvis::IProvider::connectionTested);
@@ -240,6 +277,53 @@ void TestJarvisPhase1::testGenericApiAdapterOfflineHandling() {
     QVERIFY(spy.wait(3000));
     QList<QVariant> args = spy.takeFirst();
     QCOMPARE(args.at(0).toBool(), false);
+}
+
+void TestJarvisPhase1::testRealOllamaInferenceIfAvailable() {
+    Jarvis::OllamaAdapter adapter("ollama_local", "http://127.0.0.1:11434");
+    QSignalSpy tagsSpy(&adapter, &Jarvis::IProvider::modelsDiscovered);
+
+    adapter.discoverModels();
+    if (!tagsSpy.wait(3000) || tagsSpy.isEmpty()) {
+        qDebug() << "Local Ollama not reachable; skipping live inference test.";
+        return;
+    }
+
+    auto discovered = qvariant_cast<QList<Jarvis::ModelInfo>>(tagsSpy.first().at(0));
+    if (discovered.isEmpty()) {
+        qDebug() << "No models found on local Ollama; skipping live inference test.";
+        return;
+    }
+
+    // Pick the most lightweight model available for unit testing (prefer gemma3:4b or smaller)
+    QString testModelId = discovered.first().id;
+    for (const auto& m : discovered) {
+        if (m.id == "gemma3:4b" || m.id.contains("4b") || m.id.contains("2b")) {
+            testModelId = m.id;
+            break;
+        }
+    }
+    qDebug() << "Testing live inference with discovered model:" << testModelId;
+
+    QSignalSpy finishSpy(&adapter, &Jarvis::IProvider::generationFinished);
+    QSignalSpy chunkSpy(&adapter, &Jarvis::IProvider::streamChunkReceived);
+
+    QList<Jarvis::ChatMessage> history;
+    Jarvis::ChatMessage userMsg;
+    userMsg.role = "user";
+    userMsg.content = "Reply with exactly: JARVIS TEST OK";
+    history.append(userMsg);
+
+    adapter.generateChatResponse(testModelId, history, "You are JARVIS.");
+    // Wait up to 120 seconds for cold-start CPU loading and token generation
+    QVERIFY(finishSpy.wait(120000));
+    QVERIFY(!chunkSpy.isEmpty());
+
+    QList<QVariant> args = finishSpy.takeFirst();
+    auto resp = qvariant_cast<Jarvis::ChatMessage>(args.at(0));
+    QVERIFY(!resp.content.isEmpty());
+    QVERIFY(resp.content.contains("JARVIS") || resp.content.contains("TEST") || resp.content.contains("OK"));
+    qDebug() << "Live Ollama response received successfully:" << resp.content.trimmed();
 }
 
 QTEST_MAIN(TestJarvisPhase1)

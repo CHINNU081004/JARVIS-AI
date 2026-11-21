@@ -8,6 +8,7 @@
 #include "core/MetricsCollector.h"
 #include "core/RoutingEngine.h"
 
+#include "core/ModelListModel.h"
 #include <QObject>
 #include <QAbstractListModel>
 #include <QList>
@@ -88,6 +89,7 @@ class JarvisController : public QObject {
 
     Q_PROPERTY(ChatMessageModel* chatModel READ chatModel CONSTANT)
     Q_PROPERTY(ActivityModel* activityModel READ activityModel CONSTANT)
+    Q_PROPERTY(ModelListModel* modelListModel READ modelListModel CONSTANT)
     Q_PROPERTY(WorkspaceManager* workspace READ workspace CONSTANT)
     Q_PROPERTY(MetricsCollector* metrics READ metrics CONSTANT)
     Q_PROPERTY(RoutingEngine* router READ router CONSTANT)
@@ -123,6 +125,7 @@ public:
 
     ChatMessageModel* chatModel() { return &m_chatModel; }
     ActivityModel* activityModel() { return &m_activityModel; }
+    ModelListModel* modelListModel() { return &m_modelListModel; }
     WorkspaceManager* workspace() { return &m_workspace; }
     MetricsCollector* metrics() { return &m_metrics; }
     RoutingEngine* router() { return &m_router; }
@@ -175,6 +178,7 @@ private:
 
     ChatMessageModel m_chatModel;
     ActivityModel m_activityModel;
+    ModelListModel m_modelListModel;
     WorkspaceManager m_workspace;
     MetricsCollector m_metrics;
     RoutingEngine m_router;

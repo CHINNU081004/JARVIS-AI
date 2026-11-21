@@ -21,6 +21,8 @@ find_package(Qt6 6.5 REQUIRED COMPONENTS
 # Core Library
 set(JARVIS_CORE_SOURCES
     src/core/Types.h
+    src/core/ModelListModel.h
+    src/core/ModelListModel.cpp
     src/core/JarvisController.h
     src/core/JarvisController.cpp
     src/core/MetricsCollector.h
