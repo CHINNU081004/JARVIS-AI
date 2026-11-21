@@ -83,6 +83,8 @@ class JarvisController : public QObject {
     Q_PROPERTY(QString activeTaskStep READ activeTaskStep NOTIFY activeTaskChanged)
     Q_PROPERTY(int animationIntensity READ animationIntensity WRITE setAnimationIntensity NOTIFY animationIntensityChanged)
     Q_PROPERTY(bool particlesEnabled READ particlesEnabled WRITE setParticlesEnabled NOTIFY animationIntensityChanged)
+    Q_PROPERTY(bool memoryEnabled READ memoryEnabled WRITE setMemoryEnabled NOTIFY memorySettingsChanged)
+    Q_PROPERTY(int maxMemoryRetrievalCount READ maxMemoryRetrievalCount WRITE setMaxMemoryRetrievalCount NOTIFY memorySettingsChanged)
 
     Q_PROPERTY(ChatMessageModel* chatModel READ chatModel CONSTANT)
     Q_PROPERTY(ActivityModel* activityModel READ activityModel CONSTANT)
@@ -112,6 +114,12 @@ public:
 
     bool particlesEnabled() const { return m_particlesEnabled; }
     void setParticlesEnabled(bool enabled);
+
+    bool memoryEnabled() const { return m_memoryEnabled; }
+    void setMemoryEnabled(bool enabled);
+
+    int maxMemoryRetrievalCount() const { return m_maxMemoryRetrievalCount; }
+    void setMaxMemoryRetrievalCount(int count);
 
     ChatMessageModel* chatModel() { return &m_chatModel; }
     ActivityModel* activityModel() { return &m_activityModel; }
@@ -150,6 +158,7 @@ signals:
     void providerConnectionChanged();
     void activeTaskChanged();
     void animationIntensityChanged();
+    void memorySettingsChanged();
     void modelsListChanged();
     void errorNotice(const QString& title, const QString& message);
 
@@ -184,6 +193,8 @@ private:
     bool m_isGenerating = false;
     int m_animationIntensity = 2; // 0=Off, 1=Reduced, 2=Full
     bool m_particlesEnabled = true;
+    bool m_memoryEnabled = true;
+    int m_maxMemoryRetrievalCount = 3;
 };
 
 } // namespace Jarvis

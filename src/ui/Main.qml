@@ -13,6 +13,12 @@ ApplicationWindow {
     title: "JARVIS - AI Desktop Assistant"
     color: "#050914"
 
+    // Ambient floating particles background (honors animation settings)
+    ParticlesField {
+        running: jarvis.animationIntensity === 2 && jarvis.particlesEnabled
+        count: 28
+    }
+
     // Top Navigation & Provider Bar
     Rectangle {
         id: header
@@ -32,11 +38,11 @@ ApplicationWindow {
 
             // Bot Avatar & Title
             Rectangle {
-                width: 36; height: 36
-                radius: 18
+                width: 38; height: 38
+                radius: 19
                 color: "#0e204c"
                 border.color: "#00f0ff"
-                border.width: 1
+                border.width: 1.5
 
                 Text {
                     anchors.centerIn: parent
@@ -60,14 +66,21 @@ ApplicationWindow {
                 }
             }
 
+            // Real-time Voice Waveform Visualizer
+            VoiceWaveform {
+                Layout.leftMargin: 20
+                active: jarvis.isGenerating
+                animationMode: jarvis.animationIntensity
+            }
+
             Item { Layout.fillWidth: true }
 
             // Provider Connection Pill
             Rectangle {
-                width: 180; height: 32
-                radius: 16
+                width: 190; height: 34
+                radius: 17
                 color: "#0c1b3d"
-                border.color: jarvis.isProviderConnected ? "#10b981" : "#f59e0b"
+                border.color: jarvis.metrics.lastLatencyMs > 0 ? "#10b981" : "#f59e0b"
                 border.width: 1
 
                 RowLayout {
@@ -75,17 +88,22 @@ ApplicationWindow {
                     spacing: 8
                     Rectangle {
                         width: 8; height: 8; radius: 4
-                        color: jarvis.isProviderConnected ? "#10b981" : "#f59e0b"
+                        color: jarvis.metrics.lastLatencyMs > 0 ? "#10b981" : "#f59e0b"
                     }
                     Text {
-                        text: jarvis.selectedProviderId === "ollama_local" ? "Local Ollama" : (jarvis.selectedProviderId === "ollama_remote" ? "Remote Ollama" : "OpenAI API")
+                        text: {
+                            var p = jarvis.selectedProviderId === "ollama_local" ? "Local Ollama" : (jarvis.selectedProviderId === "ollama_remote" ? "Remote Ollama" : "OpenAI API");
+                            return p;
+                        }
                         color: "#f8fafc"
                         font.pixelSize: 12
+                        font.bold: true
                     }
                 }
 
                 MouseArea {
                     anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
                     onClicked: jarvis.testActiveProvider()
                 }
             }
@@ -96,16 +114,16 @@ ApplicationWindow {
                 model: jarvis.getDiscoveredModels()
                 textRole: "name"
                 implicitWidth: 190
-                implicitHeight: 32
+                implicitHeight: 34
                 onActivated: {
                     var sel = model.get ? model.get(currentIndex).id : model[currentIndex].id;
                     jarvis.selectModel(sel);
                 }
             }
 
-            Button {
+            GlassButton {
                 text: "Refresh"
-                implicitHeight: 32
+                isSecondary: true
                 onClicked: jarvis.refreshModels()
             }
         }
@@ -135,22 +153,38 @@ ApplicationWindow {
                     delegate: Rectangle {
                         Layout.fillWidth: true
                         height: 40
-                        radius: 8
+                        radius: 10
                         color: activeTab === modelData ? "#1e3a8a" : "transparent"
                         border.color: activeTab === modelData ? "#00f0ff" : "transparent"
 
-                        Text {
-                            anchors.left: parent.left
+                        Behavior on color { ColorAnimation { duration: 150 } }
+
+                        RowLayout {
+                            anchors.fill: parent
                             anchors.leftMargin: 12
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: modelData
-                            color: activeTab === modelData ? "#00f0ff" : "#94a3b8"
-                            font.pixelSize: 13
-                            font.bold: activeTab === modelData
+                            spacing: 10
+
+                            Text {
+                                text: {
+                                    if (modelData === "Chat") return "💬";
+                                    if (modelData === "Workspace") return "📁";
+                                    if (modelData === "Memory") return "🧠";
+                                    return "⚙️";
+                                }
+                                font.pixelSize: 14
+                            }
+
+                            Text {
+                                text: modelData
+                                color: activeTab === modelData ? "#00f0ff" : "#94a3b8"
+                                font.pixelSize: 13
+                                font.bold: activeTab === modelData
+                            }
                         }
 
                         MouseArea {
                             anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
                             onClicked: activeTab = modelData
                         }
                     }
@@ -158,17 +192,11 @@ ApplicationWindow {
 
                 Item { Layout.fillHeight: true }
 
-                // UI Controls
-                Text {
-                    text: "Visual Intensity"
-                    color: "#94a3b8"
-                    font.pixelSize: 11
-                }
-                Slider {
+                // Quick session button
+                GlassButton {
                     Layout.fillWidth: true
-                    from: 0; to: 2; stepSize: 1
-                    value: jarvis.animationIntensity
-                    onMoved: jarvis.animationIntensity = value
+                    text: "+ New Chat"
+                    onClicked: jarvis.createNewConversation("Chat " + Qt.formatDateTime(new Date(), "hh:mm"))
                 }
             }
         }
@@ -178,20 +206,20 @@ ApplicationWindow {
             Layout.fillWidth: true
             Layout.fillHeight: true
 
-            // Chat View
+            // 1. Chat View
             ColumnLayout {
                 anchors.fill: parent
                 anchors.margins: 14
                 spacing: 10
                 visible: activeTab === "Chat"
 
-                // Holographic Avatar Header
+                // Holographic Center Avatar Header
                 RowLayout {
                     Layout.fillWidth: true
                     spacing: 16
                     HologramGlobe {
-                        width: 70; height: 70
-                        animate: jarvis.animationIntensity > 0
+                        width: 90; height: 90
+                        animationMode: jarvis.animationIntensity
                     }
                     ColumnLayout {
                         Text {
@@ -207,8 +235,9 @@ ApplicationWindow {
                         }
                     }
                     Item { Layout.fillWidth: true }
-                    Button {
-                        text: "Stop"
+                    GlassButton {
+                        text: "Stop Generation"
+                        isDanger: true
                         visible: jarvis.isGenerating
                         onClicked: jarvis.cancelGeneration()
                     }
@@ -226,7 +255,7 @@ ApplicationWindow {
                     delegate: Rectangle {
                         width: chatView.width
                         implicitHeight: col.implicitHeight + 20
-                        radius: 10
+                        radius: 12
                         color: model.role === "user" ? "#14254f" : "#0a1738"
                         border.color: model.role === "user" ? "#1e40af" : "#00f0ff"
                         border.width: 1
@@ -234,8 +263,8 @@ ApplicationWindow {
                         ColumnLayout {
                             id: col
                             anchors.fill: parent
-                            anchors.margins: 10
-                            spacing: 4
+                            anchors.margins: 12
+                            spacing: 6
 
                             RowLayout {
                                 Text {
@@ -299,7 +328,7 @@ ApplicationWindow {
                         }
                     }
 
-                    Button {
+                    GlassButton {
                         text: "Send"
                         enabled: !jarvis.isGenerating
                         onClicked: {
@@ -312,7 +341,7 @@ ApplicationWindow {
                 }
             }
 
-            // Workspace View
+            // 2. Workspace View
             ColumnLayout {
                 anchors.fill: parent
                 anchors.margins: 14
@@ -326,7 +355,7 @@ ApplicationWindow {
                         text: jarvis.workspace.currentPath
                         placeholderText: "Workspace folder path (e.g. /home/chinnu/Desktop/JARVIS)..."
                     }
-                    Button {
+                    GlassButton {
                         text: "Open Folder"
                         onClicked: jarvis.workspace.currentPath = wsInput.text
                     }
@@ -340,13 +369,13 @@ ApplicationWindow {
                     model: jarvis.workspace.listFiles("")
                     delegate: Rectangle {
                         width: fileListView.width
-                        height: 36
-                        radius: 6
+                        height: 38
+                        radius: 8
                         color: "#0f2048"
                         border.color: "#1e3a8a"
                         RowLayout {
                             anchors.fill: parent
-                            anchors.margins: 8
+                            anchors.margins: 10
                             Text {
                                 text: modelData.isDirectory ? "📁 " + modelData.name : "📄 " + modelData.name
                                 color: "#f8fafc"
@@ -363,18 +392,27 @@ ApplicationWindow {
                 }
             }
 
-            // Memory View
+            // 3. Memory View
             ColumnLayout {
                 anchors.fill: parent
                 anchors.margins: 14
                 spacing: 10
                 visible: activeTab === "Memory"
 
-                Text {
-                    text: "Persistent Bounded Memories"
-                    color: "#00f0ff"
-                    font.bold: true
-                    font.pixelSize: 16
+                RowLayout {
+                    Text {
+                        text: "Persistent Bounded Memories"
+                        color: "#00f0ff"
+                        font.bold: true
+                        font.pixelSize: 16
+                    }
+                    Item { Layout.fillWidth: true }
+                    Text {
+                        text: jarvis.memoryEnabled ? "Active" : "Disabled"
+                        color: jarvis.memoryEnabled ? "#10b981" : "#f59e0b"
+                        font.pixelSize: 12
+                        font.bold: true
+                    }
                 }
 
                 ListView {
@@ -385,8 +423,8 @@ ApplicationWindow {
                     model: jarvis.getAllMemories()
                     delegate: Rectangle {
                         width: memListView.width
-                        height: 48
-                        radius: 6
+                        height: 52
+                        radius: 8
                         color: "#0e1f44"
                         border.color: "#1d3875"
                         RowLayout {
@@ -406,8 +444,9 @@ ApplicationWindow {
                                 }
                             }
                             Item { Layout.fillWidth: true }
-                            Button {
+                            GlassButton {
                                 text: "Delete"
+                                isDanger: true
                                 onClicked: {
                                     jarvis.deleteMemory(modelData.id);
                                     memListView.model = jarvis.getAllMemories();
@@ -418,40 +457,111 @@ ApplicationWindow {
                 }
             }
 
-            // Settings View
+            // 4. Settings View
             ColumnLayout {
                 anchors.fill: parent
                 anchors.margins: 14
-                spacing: 12
+                spacing: 14
                 visible: activeTab === "Settings"
 
                 Text {
-                    text: "Provider Configuration"
+                    text: "JARVIS System Configuration"
                     color: "#00f0ff"
                     font.bold: true
                     font.pixelSize: 16
                 }
 
-                RowLayout {
-                    Text { text: "Local Ollama Endpoint:"; color: "#94a3b8" }
-                    TextField { id: localOllamaUrl; text: "http://127.0.0.1:11434"; Layout.fillWidth: true }
+                // Visual & Animation Mode Settings
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: 90
+                    radius: 10
+                    color: "#0a1738"
+                    border.color: "#1e3a8a"
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: 10
+                        spacing: 8
+                        RowLayout {
+                            Text { text: "UI Animation Mode:"; color: "#38bdf8"; font.bold: true }
+                            GlassButton {
+                                text: "Full"
+                                isSecondary: jarvis.animationIntensity !== 2
+                                onClicked: jarvis.animationIntensity = 2
+                            }
+                            GlassButton {
+                                text: "Reduced"
+                                isSecondary: jarvis.animationIntensity !== 1
+                                onClicked: jarvis.animationIntensity = 1
+                            }
+                            GlassButton {
+                                text: "Off"
+                                isSecondary: jarvis.animationIntensity !== 0
+                                onClicked: jarvis.animationIntensity = 0
+                            }
+                        }
+                        RowLayout {
+                            Text { text: "Floating Ambient Particles:"; color: "#94a3b8" }
+                            CheckBox {
+                                checked: jarvis.particlesEnabled
+                                onToggled: jarvis.particlesEnabled = checked
+                            }
+                        }
+                    }
+                }
+
+                // Memory Retrieval Controls
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: 80
+                    radius: 10
+                    color: "#0a1738"
+                    border.color: "#1e3a8a"
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: 10
+                        spacing: 6
+                        RowLayout {
+                            Text { text: "Enable Persistent Memory Context:"; color: "#38bdf8"; font.bold: true }
+                            CheckBox {
+                                checked: jarvis.memoryEnabled
+                                onToggled: jarvis.memoryEnabled = checked
+                            }
+                        }
+                        RowLayout {
+                            Text { text: "Max Relevant Memories Injected:"; color: "#94a3b8" }
+                            SpinBox {
+                                from: 1; to: 10
+                                value: jarvis.maxMemoryRetrievalCount
+                                onValueModified: jarvis.maxMemoryRetrievalCount = value
+                            }
+                        }
+                    }
+                }
+
+                // Provider Endpoints
+                Text {
+                    text: "Provider Network Endpoints"
+                    color: "#00f0ff"
+                    font.bold: true
+                    font.pixelSize: 14
                 }
 
                 RowLayout {
-                    Text { text: "Remote Ollama Endpoint:"; color: "#94a3b8" }
+                    Text { text: "Remote Ollama Endpoint:"; color: "#94a3b8"; Layout.preferredWidth: 160 }
                     TextField { id: remoteOllamaUrl; text: "http://remote-gpu:11434"; Layout.fillWidth: true }
-                    Button {
-                        text: "Apply"
+                    GlassButton {
+                        text: "Save & Connect"
                         onClicked: jarvis.updateProviderEndpoint("ollama_remote", remoteOllamaUrl.text)
                     }
                 }
 
                 RowLayout {
-                    Text { text: "OpenAI Compatible API:"; color: "#94a3b8" }
+                    Text { text: "OpenAI Compatible API:"; color: "#94a3b8"; Layout.preferredWidth: 160 }
                     TextField { id: genericApiUrl; text: "https://api.openai.com/v1"; Layout.fillWidth: true }
-                    TextField { id: genericApiKey; placeholderText: "API Key (Stored securely)"; echoMode: TextInput.Password; Layout.fillWidth: true }
-                    Button {
-                        text: "Apply"
+                    TextField { id: genericApiKey; placeholderText: "API Key (Redacted)"; echoMode: TextInput.Password; Layout.fillWidth: true }
+                    GlassButton {
+                        text: "Save & Connect"
                         onClicked: jarvis.updateProviderEndpoint("generic_api", genericApiUrl.text, genericApiKey.text)
                     }
                 }
@@ -480,27 +590,36 @@ ApplicationWindow {
 
                 Rectangle {
                     Layout.fillWidth: true
-                    height: 70
-                    radius: 8
+                    height: 94
+                    radius: 10
                     color: "#0a1738"
                     border.color: "#1e3a8a"
                     ColumnLayout {
                         anchors.fill: parent
                         anchors.margins: 8
+                        spacing: 4
                         Text {
                             text: "CPU Usage: " + jarvis.metrics.cpuUsagePercent + "%"
                             color: "#38bdf8"
                             font.pixelSize: 11
+                            font.bold: true
                         }
                         Text {
-                            text: "RAM Used: " + jarvis.metrics.ramUsageGb.toFixed(2) + " GB"
+                            text: "RAM: " + jarvis.metrics.ramDisplayStr
                             color: "#34d399"
                             font.pixelSize: 11
+                            font.bold: true
                         }
                         Text {
-                            text: "Network: " + jarvis.metrics.networkKbps.toFixed(1) + " KB/s"
+                            text: "Network Rate: " + jarvis.metrics.networkDisplayStr
                             color: "#a78bfa"
                             font.pixelSize: 11
+                            font.bold: true
+                        }
+                        Text {
+                            text: "Interface: " + jarvis.metrics.activeInterface
+                            color: "#94a3b8"
+                            font.pixelSize: 10
                         }
                     }
                 }
@@ -524,7 +643,7 @@ ApplicationWindow {
                     delegate: Rectangle {
                         width: actListView.width
                         implicitHeight: actCol.implicitHeight + 12
-                        radius: 6
+                        radius: 8
                         color: "#0c1a3b"
                         border.color: model.level === "ERROR" ? "#ef4444" : "#1e3a8a"
 

@@ -19,12 +19,14 @@ private slots:
     void testWorkspaceSandboxSafety();
     void testRoutingDeterministicRules();
     void testMetricsCalculation();
+    void testRamMonitoringParser();
+    void testNetworkMonitoringParser();
     void testOllamaAdapterOfflineHandling();
     void testGenericApiAdapterOfflineHandling();
 };
 
 void TestJarvisPhase1::initTestCase() {
-    qDebug() << "Initializing JARVIS Phase 1 Verification Test Suite";
+    qDebug() << "Initializing JARVIS Phase 1.1 Verification Test Suite";
 }
 
 void TestJarvisPhase1::testDatabaseOperations() {
@@ -172,15 +174,62 @@ void TestJarvisPhase1::testMetricsCalculation() {
     QCOMPARE(metrics.isExact(), false);
 }
 
+void TestJarvisPhase1::testRamMonitoringParser() {
+    QString sampleMemInfo =
+        "MemTotal:        8000000 kB\n"
+        "MemFree:         1000000 kB\n"
+        "MemAvailable:    5000000 kB\n"
+        "Buffers:          200000 kB\n";
+
+    auto stats = Jarvis::MetricsCollector::parseMemInfo(sampleMemInfo);
+    QVERIFY(stats.isValid);
+    QCOMPARE(stats.totalBytes, static_cast<qint64>(8000000) * 1024);
+    QCOMPARE(stats.availableBytes, static_cast<qint64>(5000000) * 1024);
+    QCOMPARE(stats.usedBytes, static_cast<qint64>(3000000) * 1024);
+    QCOMPARE(static_cast<int>(stats.usedPercent), 37);
+
+    // Malformed input test
+    auto invalidStats = Jarvis::MetricsCollector::parseMemInfo("Bad content without keys");
+    QVERIFY(!invalidStats.isValid);
+}
+
+void TestJarvisPhase1::testNetworkMonitoringParser() {
+    QString sampleDev =
+        "Inter-|   Receive                                                |  Transmit\n"
+        " face |bytes    packets errs drop fifo frame compressed multicast|bytes    packets errs drop fifo colls carrier compressed\n"
+        "    lo:  100000      50    0    0    0     0          0         0   100000      50    0    0    0     0       0          0\n"
+        "wlp2s0: 2048000     100    0    0    0     0          0         0  1024000     100    0    0    0     0       0          0\n";
+
+    // First sample (baseline)
+    auto stats1 = Jarvis::MetricsCollector::parseNetworkDev(sampleDev, 0, 0, 0);
+    QCOMPARE(stats1.activeInterface, QString("wlp2s0"));
+    QCOMPARE(stats1.rxBytes, static_cast<qint64>(2048000));
+    QCOMPARE(stats1.txBytes, static_cast<qint64>(1024000));
+
+    // Second sample 1000ms later (+1024000 RX bytes = 1000 KB/s)
+    QString sampleDev2 =
+        "    lo:  100000      50    0    0    0     0          0         0   100000      50    0    0    0     0       0          0\n"
+        "wlp2s0: 3072000     150    0    0    0     0          0         0  1536000     150    0    0    0     0       0          0\n";
+    auto stats2 = Jarvis::MetricsCollector::parseNetworkDev(sampleDev2, stats1.rxBytes, stats1.txBytes, 1000);
+    QVERIFY(stats2.isValid);
+    QCOMPARE(static_cast<int>(stats2.rxKbps), 1000);
+    QCOMPARE(static_cast<int>(stats2.txKbps), 500);
+    QCOMPARE(static_cast<int>(stats2.totalKbps), 1500);
+
+    // Counter reset protection test
+    auto statsReset = Jarvis::MetricsCollector::parseNetworkDev(sampleDev, 5000000, 5000000, 1000);
+    QVERIFY(statsReset.isValid);
+    QCOMPARE(statsReset.totalKbps, 0.0);
+}
+
 void TestJarvisPhase1::testOllamaAdapterOfflineHandling() {
-    // Port 65530 is closed, should cleanly fail without crash
     Jarvis::OllamaAdapter adapter("ollama_test", "http://127.0.0.1:65530");
     QSignalSpy spy(&adapter, &Jarvis::IProvider::connectionTested);
 
     adapter.testConnection();
     QVERIFY(spy.wait(3000));
     QList<QVariant> args = spy.takeFirst();
-    QCOMPARE(args.at(0).toBool(), false); // Connection should fail gracefully
+    QCOMPARE(args.at(0).toBool(), false);
 }
 
 void TestJarvisPhase1::testGenericApiAdapterOfflineHandling() {

@@ -152,6 +152,9 @@ bool JarvisController::initialize() {
     QString savedIntensity = m_db.getSetting("ui_animation_intensity", "2");
     m_animationIntensity = savedIntensity.toInt();
     m_particlesEnabled = m_db.getSetting("ui_particles_enabled", "1") == "1";
+    m_memoryEnabled = m_db.getSetting("memory_enabled", "1") == "1";
+    m_maxMemoryRetrievalCount = m_db.getSetting("memory_max_retrieval", "3").toInt();
+    if (m_maxMemoryRetrievalCount <= 0) m_maxMemoryRetrievalCount = 3;
 
     // 3. Register Providers
     auto* localOllama = new OllamaAdapter("ollama_local", "http://127.0.0.1:11434", this);
@@ -212,6 +215,22 @@ void JarvisController::setParticlesEnabled(bool enabled) {
         m_particlesEnabled = enabled;
         m_db.saveSetting("ui_particles_enabled", enabled ? "1" : "0");
         emit animationIntensityChanged();
+    }
+}
+
+void JarvisController::setMemoryEnabled(bool enabled) {
+    if (m_memoryEnabled != enabled) {
+        m_memoryEnabled = enabled;
+        m_db.saveSetting("memory_enabled", enabled ? "1" : "0");
+        emit memorySettingsChanged();
+    }
+}
+
+void JarvisController::setMaxMemoryRetrievalCount(int count) {
+    if (count > 0 && m_maxMemoryRetrievalCount != count) {
+        m_maxMemoryRetrievalCount = count;
+        m_db.saveSetting("memory_max_retrieval", QString::number(count));
+        emit memorySettingsChanged();
     }
 }
 
@@ -341,15 +360,17 @@ void JarvisController::sendMessage(const QString& text) {
     QString targetModel = m_router.resolveModel(m_selectedModelId, text, m_allModels, &routingReason);
     logEvent("INFO", "Routing Resolution", QString("Resolved Model: %1 (%2)").arg(targetModel, routingReason), "Router");
 
-    // 3. Bounded Relevant Memory Retrieval
-    auto relevantMems = m_db.getRelevantMemories(text, 3);
+    // 3. Bounded Relevant Memory Retrieval (Respect user setting)
     QString systemPrompt = "You are JARVIS, a helpful, precise native AI assistant.";
-    if (!relevantMems.isEmpty()) {
-        systemPrompt += "\n[Relevant Memories]:";
-        for (const auto& mem : relevantMems) {
-            systemPrompt += QString("\n- (%1) %2").arg(mem.key, mem.content);
+    if (m_memoryEnabled) {
+        auto relevantMems = m_db.getRelevantMemories(text, m_maxMemoryRetrievalCount);
+        if (!relevantMems.isEmpty()) {
+            systemPrompt += "\n[Relevant Memories]:";
+            for (const auto& mem : relevantMems) {
+                systemPrompt += QString("\n- (%1) %2").arg(mem.key, mem.content);
+            }
+            logEvent("INFO", "Memory Retrieved", QString("Retrieved %1 relevant memories for query.").arg(relevantMems.size()), "Memory");
         }
-        logEvent("INFO", "Memory Retrieved", QString("Retrieved %1 relevant memories for query.").arg(relevantMems.size()), "Memory");
     }
 
     // 4. Create empty assistant placeholder message
