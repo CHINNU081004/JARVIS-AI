@@ -159,11 +159,20 @@ bool JarvisController::initialize() {
     // 3. Register Providers
     auto* localOllama = new OllamaAdapter("ollama_local", "http://127.0.0.1:11434", this);
     auto* remoteOllama = new OllamaAdapter("ollama_remote", m_db.getSetting("remote_ollama_url", "http://remote-server:11434"), this);
-    auto* genericApi = new GenericApiAdapter("generic_api", m_db.getSetting("generic_api_url", "https://api.openai.com/v1"), this);
+
+    QString apiProtoStr = m_db.getSetting("api_protocol", "OpenAI-Compatible");
+    auto* universalApi = new UniversalApiAdapter("universal_api",
+                                                 m_db.getSetting("universal_api_url", "https://api.openai.com/v1"),
+                                                 UniversalApiAdapter::stringToProtocol(apiProtoStr),
+                                                 this);
+    QString savedApiKey = m_db.getSetting("universal_api_key", "");
+    if (!savedApiKey.isEmpty()) universalApi->setApiKey(savedApiKey);
 
     m_providers[localOllama->id()] = localOllama;
     m_providers[remoteOllama->id()] = remoteOllama;
-    m_providers[genericApi->id()] = genericApi;
+    m_providers[universalApi->id()] = universalApi;
+    // Map generic_api alias to universal_api
+    m_providers["generic_api"] = universalApi;
 
     for (auto* prov : m_providers.values()) {
         connect(prov, &IProvider::connectionTested, this, &JarvisController::onConnectionTested);
@@ -281,19 +290,38 @@ void JarvisController::refreshModels() {
     }
 }
 
-void JarvisController::updateProviderEndpoint(const QString& providerId, const QString& newUrl, const QString& apiKey) {
+void JarvisController::updateProviderEndpoint(const QString& providerId, const QString& newUrl, const QString& apiKey, const QString& protocolStr) {
     auto* prov = m_providers.value(providerId, nullptr);
     if (prov) {
         prov->setEndpoint(newUrl);
-        prov->setApiKey(apiKey);
+        if (!apiKey.isEmpty()) prov->setApiKey(apiKey);
+
         if (providerId == "ollama_remote") {
             m_db.saveSetting("remote_ollama_url", newUrl);
-        } else if (providerId == "generic_api") {
-            m_db.saveSetting("generic_api_url", newUrl);
+            m_metrics.setRemoteGpuConfigured(true);
+        } else if (providerId == "universal_api" || providerId == "generic_api") {
+            m_db.saveSetting("universal_api_url", newUrl);
+            if (!apiKey.isEmpty()) m_db.saveSetting("universal_api_key", apiKey);
+            if (!protocolStr.isEmpty()) {
+                m_db.saveSetting("api_protocol", protocolStr);
+                auto* uApi = qobject_cast<UniversalApiAdapter*>(prov);
+                if (uApi) {
+                    uApi->setProtocol(UniversalApiAdapter::stringToProtocol(protocolStr));
+                }
+            }
         }
         testActiveProvider();
         refreshModels();
     }
+}
+
+QString JarvisController::getProviderProtocol(const QString& providerId) const {
+    auto* prov = m_providers.value(providerId, nullptr);
+    auto* uApi = qobject_cast<UniversalApiAdapter*>(prov);
+    if (uApi) {
+        return UniversalApiAdapter::protocolToString(uApi->protocol());
+    }
+    return QString();
 }
 
 QVariantList JarvisController::getDiscoveredModels() {

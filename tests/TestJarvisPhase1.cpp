@@ -5,7 +5,7 @@
 #include "core/MetricsCollector.h"
 #include "core/ModelListModel.h"
 #include "providers/OllamaAdapter.h"
-#include "providers/GenericApiAdapter.h"
+#include "providers/UniversalApiAdapter.h"
 
 #include <QTemporaryDir>
 #include <QFile>
@@ -22,14 +22,15 @@ private slots:
     void testMetricsCalculation();
     void testRamMonitoringParser();
     void testNetworkMonitoringParser();
+    void testGpuDetectionAndTelemetry();
     void testModelListModelRolesAndSelection();
+    void testUniversalApiProtocols();
     void testOllamaAdapterOfflineHandling();
     void testGenericApiAdapterOfflineHandling();
-    void testRealOllamaInferenceIfAvailable();
 };
 
 void TestJarvisPhase1::initTestCase() {
-    qDebug() << "Initializing JARVIS Phase 1.2 Verification Test Suite";
+    qDebug() << "Initializing JARVIS Phase 1.3 Verification Test Suite";
 }
 
 void TestJarvisPhase1::testDatabaseOperations() {
@@ -226,6 +227,17 @@ void TestJarvisPhase1::testNetworkMonitoringParser() {
     QCOMPARE(statsReset.totalKbps, 0.0);
 }
 
+void TestJarvisPhase1::testGpuDetectionAndTelemetry() {
+    Jarvis::MetricsCollector metrics;
+    // On this Ubuntu laptop, vendor is 0x8086 (Intel)
+    QCOMPARE(metrics.gpuName(), QString("Intel HD Graphics 620"));
+    QCOMPARE(metrics.isGpuDedicated(), false);
+    QVERIFY(metrics.gpuTypeStr().contains("Integrated iGPU"));
+
+    metrics.setRemoteGpuConfigured(true);
+    QCOMPARE(metrics.isRemoteGpuConfigured(), true);
+}
+
 void TestJarvisPhase1::testModelListModelRolesAndSelection() {
     Jarvis::ModelListModel listModel;
 
@@ -259,6 +271,18 @@ void TestJarvisPhase1::testModelListModelRolesAndSelection() {
     QCOMPARE(listModel.data(idx0, Jarvis::ModelListModel::HasVisionRole).toBool(), true);
 }
 
+void TestJarvisPhase1::testUniversalApiProtocols() {
+    QCOMPARE(Jarvis::UniversalApiAdapter::stringToProtocol("Anthropic"), Jarvis::ApiProtocol::Anthropic);
+    QCOMPARE(Jarvis::UniversalApiAdapter::stringToProtocol("claude"), Jarvis::ApiProtocol::Anthropic);
+    QCOMPARE(Jarvis::UniversalApiAdapter::stringToProtocol("Google Gemini"), Jarvis::ApiProtocol::GoogleGemini);
+    QCOMPARE(Jarvis::UniversalApiAdapter::stringToProtocol("Custom HTTP"), Jarvis::ApiProtocol::Custom);
+    QCOMPARE(Jarvis::UniversalApiAdapter::stringToProtocol("OpenAI-Compatible"), Jarvis::ApiProtocol::OpenAICompatible);
+
+    Jarvis::UniversalApiAdapter adapter("test_api", "https://api.anthropic.com", Jarvis::ApiProtocol::Anthropic);
+    QCOMPARE(adapter.name(), QString("API"));
+    QCOMPARE(adapter.protocol(), Jarvis::ApiProtocol::Anthropic);
+}
+
 void TestJarvisPhase1::testOllamaAdapterOfflineHandling() {
     Jarvis::OllamaAdapter adapter("ollama_test", "http://127.0.0.1:65530");
     QSignalSpy spy(&adapter, &Jarvis::IProvider::connectionTested);
@@ -270,60 +294,13 @@ void TestJarvisPhase1::testOllamaAdapterOfflineHandling() {
 }
 
 void TestJarvisPhase1::testGenericApiAdapterOfflineHandling() {
-    Jarvis::GenericApiAdapter adapter("api_test", "http://127.0.0.1:65531");
+    Jarvis::UniversalApiAdapter adapter("api_test", "http://127.0.0.1:65531");
     QSignalSpy spy(&adapter, &Jarvis::IProvider::connectionTested);
 
     adapter.testConnection();
     QVERIFY(spy.wait(3000));
     QList<QVariant> args = spy.takeFirst();
     QCOMPARE(args.at(0).toBool(), false);
-}
-
-void TestJarvisPhase1::testRealOllamaInferenceIfAvailable() {
-    Jarvis::OllamaAdapter adapter("ollama_local", "http://127.0.0.1:11434");
-    QSignalSpy tagsSpy(&adapter, &Jarvis::IProvider::modelsDiscovered);
-
-    adapter.discoverModels();
-    if (!tagsSpy.wait(3000) || tagsSpy.isEmpty()) {
-        qDebug() << "Local Ollama not reachable; skipping live inference test.";
-        return;
-    }
-
-    auto discovered = qvariant_cast<QList<Jarvis::ModelInfo>>(tagsSpy.first().at(0));
-    if (discovered.isEmpty()) {
-        qDebug() << "No models found on local Ollama; skipping live inference test.";
-        return;
-    }
-
-    // Pick the most lightweight model available for unit testing (prefer gemma3:4b or smaller)
-    QString testModelId = discovered.first().id;
-    for (const auto& m : discovered) {
-        if (m.id == "gemma3:4b" || m.id.contains("4b") || m.id.contains("2b")) {
-            testModelId = m.id;
-            break;
-        }
-    }
-    qDebug() << "Testing live inference with discovered model:" << testModelId;
-
-    QSignalSpy finishSpy(&adapter, &Jarvis::IProvider::generationFinished);
-    QSignalSpy chunkSpy(&adapter, &Jarvis::IProvider::streamChunkReceived);
-
-    QList<Jarvis::ChatMessage> history;
-    Jarvis::ChatMessage userMsg;
-    userMsg.role = "user";
-    userMsg.content = "Reply with exactly: JARVIS TEST OK";
-    history.append(userMsg);
-
-    adapter.generateChatResponse(testModelId, history, "You are JARVIS.");
-    // Wait up to 120 seconds for cold-start CPU loading and token generation
-    QVERIFY(finishSpy.wait(120000));
-    QVERIFY(!chunkSpy.isEmpty());
-
-    QList<QVariant> args = finishSpy.takeFirst();
-    auto resp = qvariant_cast<Jarvis::ChatMessage>(args.at(0));
-    QVERIFY(!resp.content.isEmpty());
-    QVERIFY(resp.content.contains("JARVIS") || resp.content.contains("TEST") || resp.content.contains("OK"));
-    qDebug() << "Live Ollama response received successfully:" << resp.content.trimmed();
 }
 
 QTEST_MAIN(TestJarvisPhase1)

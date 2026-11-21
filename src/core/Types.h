@@ -9,7 +9,14 @@ namespace Jarvis {
 enum class ProviderType {
     OllamaLocal,
     OllamaRemote,
-    GenericOpenAICompatible
+    UniversalApi
+};
+
+enum class ApiProtocol {
+    OpenAICompatible,
+    Anthropic,
+    GoogleGemini,
+    Custom
 };
 
 enum class CapabilityState {
@@ -41,6 +48,7 @@ struct ProviderProfile {
     QString id;
     QString displayName;
     ProviderType type = ProviderType::OllamaLocal;
+    ApiProtocol protocol = ApiProtocol::OpenAICompatible;
     QString endpoint = "http://127.0.0.1:11434";
     QString apiKey; // Redacted when logged
     bool isConnected = false;

@@ -54,6 +54,12 @@ class MetricsCollector : public QObject {
     Q_PROPERTY(QString activeInterface READ activeInterface NOTIFY systemMetricsUpdated)
     Q_PROPERTY(bool isNetworkConnected READ isNetworkConnected NOTIFY systemMetricsUpdated)
 
+    // GPU & Hardware Acceleration Metrics
+    Q_PROPERTY(QString gpuName READ gpuName NOTIFY systemMetricsUpdated)
+    Q_PROPERTY(bool isGpuDedicated READ isGpuDedicated NOTIFY systemMetricsUpdated)
+    Q_PROPERTY(QString gpuTypeStr READ gpuTypeStr NOTIFY systemMetricsUpdated)
+    Q_PROPERTY(bool isRemoteGpuConfigured READ isRemoteGpuConfigured WRITE setRemoteGpuConfigured NOTIFY systemMetricsUpdated)
+
 public:
     explicit MetricsCollector(QObject* parent = nullptr);
 
@@ -81,6 +87,18 @@ public:
     QString networkDisplayStr() const;
     QString activeInterface() const { return m_netStats.activeInterface; }
     bool isNetworkConnected() const { return m_netStats.isConnected; }
+
+    // GPU properties
+    QString gpuName() const { return m_gpuName; }
+    bool isGpuDedicated() const { return m_isGpuDedicated; }
+    QString gpuTypeStr() const { return m_isGpuDedicated ? "Dedicated GPU" : "Integrated iGPU (Shared VRAM)"; }
+    bool isRemoteGpuConfigured() const { return m_isRemoteGpuConfigured; }
+    void setRemoteGpuConfigured(bool val) {
+        if (m_isRemoteGpuConfigured != val) {
+            m_isRemoteGpuConfigured = val;
+            emit systemMetricsUpdated();
+        }
+    }
 
     void recordGenerationMetrics(qint64 pTokens, qint64 cTokens, qint64 duration, double tps, bool exact);
     void recordLatency(qint64 latencyMs);
@@ -112,6 +130,9 @@ private:
     NetworkStats m_netStats;
 
     QTimer* m_sysTimer;
+    QString m_gpuName = "Intel HD Graphics 620";
+    bool m_isGpuDedicated = false;
+    bool m_isRemoteGpuConfigured = false;
     qint64 m_prevCpuIdle = 0;
     qint64 m_prevCpuTotal = 0;
     qint64 m_prevNetRxBytes = 0;

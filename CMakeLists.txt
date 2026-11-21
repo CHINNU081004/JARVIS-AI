@@ -32,6 +32,8 @@ set(JARVIS_CORE_SOURCES
     src/providers/IProvider.h
     src/providers/OllamaAdapter.h
     src/providers/OllamaAdapter.cpp
+    src/providers/UniversalApiAdapter.h
+    src/providers/UniversalApiAdapter.cpp
     src/providers/GenericApiAdapter.h
     src/providers/GenericApiAdapter.cpp
     src/storage/DatabaseManager.h

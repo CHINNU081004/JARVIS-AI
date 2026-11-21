@@ -136,7 +136,8 @@ public:
     Q_INVOKABLE void selectModel(const QString& modelId);
     Q_INVOKABLE void testActiveProvider();
     Q_INVOKABLE void refreshModels();
-    Q_INVOKABLE void updateProviderEndpoint(const QString& providerId, const QString& newUrl, const QString& apiKey = QString());
+    Q_INVOKABLE void updateProviderEndpoint(const QString& providerId, const QString& newUrl, const QString& apiKey = QString(), const QString& protocolStr = QString());
+    Q_INVOKABLE QString getProviderProtocol(const QString& providerId) const;
 
     Q_INVOKABLE void createNewConversation(const QString& title = "New Chat");
     Q_INVOKABLE void loadConversation(const QString& convId);

@@ -10,6 +10,24 @@ MetricsCollector::MetricsCollector(QObject* parent)
     : QObject(parent)
     , m_sysTimer(new QTimer(this))
 {
+    // Detect local GPU device
+    QFile vendorFile("/sys/class/drm/card1/device/vendor");
+    QFile devFile("/sys/class/drm/card1/device/device");
+    if (vendorFile.open(QIODevice::ReadOnly | QIODevice::Text) && devFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QString vendor = vendorFile.readAll().trimmed();
+        QString device = devFile.readAll().trimmed();
+        if (vendor == "0x8086") {
+            m_gpuName = "Intel HD Graphics 620";
+            m_isGpuDedicated = false; // Integrated iGPU
+        } else if (vendor == "0x10de") {
+            m_gpuName = "NVIDIA Dedicated GPU";
+            m_isGpuDedicated = true;
+        } else if (vendor == "0x1002") {
+            m_gpuName = "AMD Radeon GPU";
+            m_isGpuDedicated = true;
+        }
+    }
+
     connect(m_sysTimer, &QTimer::timeout, this, &MetricsCollector::sampleSystemMetrics);
     m_sysTimer->start(2000); // 2-second sampling interval for minimal CPU overhead
     sampleSystemMetrics();

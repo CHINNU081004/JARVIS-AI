@@ -6,6 +6,7 @@
         <file>ui/HologramGlobe.qml</file>
         <file>ui/VoiceWaveform.qml</file>
         <file>ui/ParticlesField.qml</file>
+        <file>ui/VectorIcon.qml</file>
         <file>ui/Theme.qml</file>
         <file>ui/assets/icon.png</file>
     </qresource>
