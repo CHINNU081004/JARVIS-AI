@@ -65,14 +65,31 @@ ApplicationWindow {
 
             ColumnLayout {
                 spacing: 2
-                Text {
-                    text: "JARVIS Lite"
-                    color: "#00f0ff"
-                    font.pixelSize: 16
-                    font.bold: true
+                RowLayout {
+                    spacing: 6
+                    Text {
+                        text: "JARVIS"
+                        color: "#00f0ff"
+                        font.pixelSize: 16
+                        font.bold: true
+                    }
+                    Rectangle {
+                        radius: 4
+                        color: "#00f0ff"
+                        implicitWidth: phaseTag.implicitWidth + 8
+                        implicitHeight: 16
+                        opacity: 0.15
+                    }
+                    Text {
+                        id: phaseTag
+                        text: "v" + jarvis.appVersion
+                        color: "#00f0ff"
+                        font.pixelSize: 10
+                        font.bold: true
+                    }
                 }
                 Text {
-                    text: "Your Local & Cloud AI Assistant"
+                    text: "Autonomous Agent & OS Automation Engine"
                     color: "#94a3b8"
                     font.pixelSize: 11
                 }
@@ -186,6 +203,7 @@ ApplicationWindow {
                     model: [
                         { name: "Chat", icon: "chat" },
                         { name: "Agent", icon: "agent" },
+                        { name: "Terminal", icon: "terminal" },
                         { name: "Workspace", icon: "folder" },
                         { name: "Memory", icon: "memory" },
                         { name: "Settings", icon: "settings" }
@@ -690,7 +708,257 @@ ApplicationWindow {
                 }
             }
 
-            // 3. Memory View
+            // 3. Terminal & OS Operations View (Phase 2.2)
+            ColumnLayout {
+                anchors.fill: parent
+                anchors.margins: 14
+                spacing: 12
+                visible: activeTab === "Terminal"
+
+                // System Specs Header Card
+                Rectangle {
+                    Layout.fillWidth: true
+                    implicitHeight: 90
+                    radius: 12
+                    color: "#081329"
+                    border.color: "#1e3a8a"
+                    border.width: 1
+
+                    property var sysData: jarvis.getSystemInfo()
+
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.margins: 14
+                        spacing: 20
+
+                        VectorIcon { name: "terminal"; color: "#00f0ff"; width: 28; height: 28 }
+
+                        ColumnLayout {
+                            spacing: 3
+                            Text {
+                                text: parent.parent.sysData ? (parent.parent.sysData.osName + " • " + parent.parent.sysData.hostName) : "Host OS"
+                                color: "#00f0ff"
+                                font.bold: true
+                                font.pixelSize: 15
+                            }
+                            Text {
+                                text: parent.parent.sysData ? ("CPU: " + parent.parent.sysData.cpuModel + " (" + parent.parent.sysData.cpuCores + " Cores) • Kernel: " + parent.parent.sysData.kernelVersion) : ""
+                                color: "#94a3b8"
+                                font.pixelSize: 11
+                            }
+                            Text {
+                                text: parent.parent.sysData ? ("RAM: " + (parent.parent.sysData.totalRamMb - parent.parent.sysData.availableRamMb) + " MB / " + parent.parent.sysData.totalRamMb + " MB • Disk: " + parent.parent.sysData.availableDiskGb.toFixed(1) + " GB Free / " + parent.parent.sysData.totalDiskGb.toFixed(1) + " GB") : ""
+                                color: "#10b981"
+                                font.pixelSize: 11
+                            }
+                        }
+
+                        Item { Layout.fillWidth: true }
+
+                        GlassButton {
+                            text: "Refresh Stats"
+                            onClicked: parent.parent.sysData = jarvis.getSystemInfo()
+                        }
+                    }
+                }
+
+                // Split View: Command Execution & Process Viewer
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    spacing: 12
+
+                    // Left Column: Interactive Terminal Tool Runner
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        Layout.preferredWidth: 3
+                        radius: 12
+                        color: "#060914"
+                        border.color: "#1e293b"
+
+                        ColumnLayout {
+                            anchors.fill: parent
+                            anchors.margins: 12
+                            spacing: 10
+
+                            RowLayout {
+                                Text {
+                                    text: "Approved Terminal Console"
+                                    color: "#38bdf8"
+                                    font.bold: true
+                                    font.pixelSize: 13
+                                }
+                                Item { Layout.fillWidth: true }
+                                Text {
+                                    text: "Execution Mode: Sandboxed / No Shell Injection"
+                                    color: "#64748b"
+                                    font.pixelSize: 10
+                                }
+                            }
+
+                            // Terminal Console Output Log
+                            ScrollView {
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                clip: true
+
+                                TextEdit {
+                                    id: termOutputArea
+                                    width: parent.width
+                                    readOnly: true
+                                    selectByMouse: true
+                                    font.family: "Monospace"
+                                    font.pixelSize: 12
+                                    color: "#a3e635"
+                                    text: "$ JARVIS Safe Host Execution Engine Ready.\nEnter command executable and arguments below.\n"
+                                }
+                            }
+
+                            // Command Input Line
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: 8
+
+                                GlassTextField {
+                                    id: terminalCommandInput
+                                    Layout.fillWidth: true
+                                    placeholderText: "Enter executable command (e.g. 'uname -a', 'ls -la', 'df -h')..."
+                                    leadingIcon: "terminal"
+                                    trailingClearButton: true
+                                    onAccepted: {
+                                        if (text.trim() !== "") {
+                                            var parts = text.trim().split(" ");
+                                            var cmd = parts[0];
+                                            var args = parts.slice(1);
+                                            var out = jarvis.executeTerminalCommandDirect(cmd, args);
+                                            termOutputArea.text += "\n$ " + text + "\n" + out + "\n";
+                                            text = "";
+                                        }
+                                    }
+                                }
+
+                                GlassButton {
+                                    text: "Run Command"
+                                    onClicked: {
+                                        if (terminalCommandInput.text.trim() !== "") {
+                                            var parts = terminalCommandInput.text.trim().split(" ");
+                                            var cmd = parts[0];
+                                            var args = parts.slice(1);
+                                            var out = jarvis.executeTerminalCommandDirect(cmd, args);
+                                            termOutputArea.text += "\n$ " + terminalCommandInput.text + "\n" + out + "\n";
+                                            terminalCommandInput.text = "";
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Right Column: System Process Viewer
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        Layout.preferredWidth: 2
+                        radius: 12
+                        color: "#081329"
+                        border.color: "#1e3a8a"
+
+                        property var procList: jarvis.listProcesses(procFilter.text)
+
+                        ColumnLayout {
+                            anchors.fill: parent
+                            anchors.margins: 12
+                            spacing: 8
+
+                            RowLayout {
+                                Text {
+                                    text: "System Processes"
+                                    color: "#00f0ff"
+                                    font.bold: true
+                                    font.pixelSize: 13
+                                }
+                                Item { Layout.fillWidth: true }
+                                GlassButton {
+                                    text: "Refresh"
+                                    onClicked: parent.parent.procList = jarvis.listProcesses(procFilter.text)
+                                }
+                            }
+
+                            GlassTextField {
+                                id: procFilter
+                                Layout.fillWidth: true
+                                placeholderText: "Filter processes by name..."
+                                leadingIcon: "search"
+                                trailingClearButton: true
+                                onTextChanged: parent.parent.procList = jarvis.listProcesses(text)
+                            }
+
+                            ListView {
+                                id: procListView
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                clip: true
+                                model: parent.parent.procList
+
+                                delegate: Rectangle {
+                                    width: procListView.width
+                                    height: 40
+                                    radius: 6
+                                    color: procMouse.containsMouse ? "#112652" : "#0c1f44"
+                                    border.color: procMouse.containsMouse ? "#00f0ff" : "#1a3366"
+                                    border.width: 1
+
+                                    RowLayout {
+                                        anchors.fill: parent
+                                        anchors.margins: 6
+                                        spacing: 8
+
+                                        Text {
+                                            text: "PID " + modelData.pid
+                                            color: "#94a3b8"
+                                            font.pixelSize: 10
+                                            font.bold: true
+                                        }
+
+                                        Text {
+                                            text: modelData.name
+                                            color: "#f8fafc"
+                                            font.pixelSize: 11
+                                            Layout.fillWidth: true
+                                            elide: Text.ElideRight
+                                        }
+
+                                        Text {
+                                            text: modelData.memoryRssMb + " MB"
+                                            color: "#38bdf8"
+                                            font.pixelSize: 10
+                                        }
+
+                                        GlassButton {
+                                            text: "End"
+                                            isDanger: true
+                                            onClicked: {
+                                                jarvis.terminateProcess(modelData.pid, false);
+                                                procListView.parent.parent.procList = jarvis.listProcesses(procFilter.text);
+                                            }
+                                        }
+                                    }
+
+                                    MouseArea {
+                                        id: procMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        acceptedButtons: Qt.NoButton
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 4. Memory View
             ColumnLayout {
                 anchors.fill: parent
                 anchors.margins: 14

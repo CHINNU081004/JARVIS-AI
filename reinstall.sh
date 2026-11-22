@@ -22,12 +22,15 @@ cp -f /home/chinnu/Desktop/JARVIS/src/ui/assets/icon.png ~/.local/share/pixmaps/
 update-desktop-database ~/.local/share/applications/ 2>/dev/null || true
 
 # 6. Install system-wide if passwordless sudo available, else remind user
-if sudo -n true 2>/dev/null; then
-    sudo dpkg -i /home/chinnu/Desktop/JARVIS/build/jarvis-1.0.0-Linux.deb
-    echo "✓ Reinstalled system-wide (/usr/bin/jarvis and ~/.local/bin/jarvis)."
-else
-    echo "✓ Reinstalled in ~/.local/bin/jarvis."
-    echo "  (For full system-wide /usr/bin/jarvis, run: sudo dpkg -i ~/Desktop/JARVIS/build/jarvis-1.0.0-Linux.deb)"
+DEB_FILE=$(ls -t /home/chinnu/Desktop/JARVIS/build/jarvis-*-Linux.deb 2>/dev/null | head -n 1)
+if [ -n "$DEB_FILE" ]; then
+    if sudo -n true 2>/dev/null; then
+        sudo dpkg -i "$DEB_FILE"
+        echo "✓ Reinstalled system-wide (/usr/bin/jarvis and ~/.local/bin/jarvis)."
+    else
+        echo "✓ Reinstalled in ~/.local/bin/jarvis."
+        echo "  (For full system-wide /usr/bin/jarvis, run: sudo dpkg -i $DEB_FILE)"
+    fi
 fi
 
 echo "=== Done! You can now run: jarvis ==="

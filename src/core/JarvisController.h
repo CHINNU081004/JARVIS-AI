@@ -11,6 +11,9 @@
 #include "core/ModelListModel.h"
 #include "agent/ToolRegistry.h"
 #include "agent/WorkspaceTools.h"
+#include "agent/TerminalService.h"
+#include "agent/SystemPlatformService.h"
+#include "agent/SystemTools.h"
 #include "agent/AgentEngine.h"
 #include <QObject>
 #include <QAbstractListModel>
@@ -77,6 +80,7 @@ private:
 class JarvisController : public QObject {
     Q_OBJECT
     Q_PROPERTY(QString appVersion READ appVersion CONSTANT)
+    Q_PROPERTY(QString phaseNumber READ phaseNumber CONSTANT)
     Q_PROPERTY(bool isGenerating READ isGenerating NOTIFY isGeneratingChanged)
     Q_PROPERTY(QString currentConversationId READ currentConversationId NOTIFY currentConversationChanged)
     Q_PROPERTY(QString currentConversationTitle READ currentConversationTitle NOTIFY currentConversationChanged)
@@ -116,7 +120,8 @@ public:
 
     bool initialize();
 
-    QString appVersion() const { return "1.0.0"; }
+    QString appVersion() const { return "2.2.0 (Phase 2.2)"; }
+    QString phaseNumber() const { return "Phase 2.2"; }
     bool isGenerating() const { return m_isGenerating; }
     QString currentConversationId() const { return m_currentConversationId; }
     QString currentConversationTitle() const { return m_currentConversationTitle; }
@@ -198,6 +203,14 @@ public:
     Q_INVOKABLE void addMemory(const QString& key, const QString& content, const QString& category, bool pinned);
     Q_INVOKABLE void deleteMemory(const QString& id);
 
+    // Phase 2.2 System & Terminal APIs
+    Q_INVOKABLE QVariantMap getSystemInfo();
+    Q_INVOKABLE QVariantList listProcesses(const QString& filter = QString());
+    Q_INVOKABLE bool terminateProcess(qint64 pid, bool force = false);
+    Q_INVOKABLE QString executeTerminalCommandDirect(const QString& command, const QStringList& args = {}, const QString& workingDir = QString());
+    Q_INVOKABLE bool openResourceDirect(const QString& target);
+    Q_INVOKABLE bool launchApplicationDirect(const QString& appName, const QStringList& args = {});
+
     // Activity Log
     void logEvent(const QString& level, const QString& title, const QString& detail, const QString& category);
 
@@ -236,6 +249,7 @@ private:
     RoutingEngine m_router;
     DatabaseManager m_db;
     ToolRegistry m_toolRegistry;
+    TerminalService m_terminalService;
     AgentEngine m_agent;
 
     QMap<QString, IProvider*> m_providers;

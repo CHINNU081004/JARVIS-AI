@@ -160,7 +160,7 @@ bool AgentEngine::parseToolCall(const QString& text, ToolExecutionRequest* reqOu
         auto tool = m_registry ? m_registry->getTool(reqOut->toolName) : nullptr;
         reqOut->permission = tool ? tool->permission() : ToolPermission::ReadOnly;
 
-        // Pre-generate diff preview for edit_file or create_file
+        // Pre-generate diff preview for edit_file or create_file or terminal commands
         if (reqOut->toolName == "create_file") {
             QString path = reqOut->arguments["path"].toString();
             QString content = reqOut->arguments["content"].toString();
@@ -171,6 +171,25 @@ bool AgentEngine::parseToolCall(const QString& text, ToolExecutionRequest* reqOu
             reqOut->diffPreview = QString("@@ Edit Target: %1 @@\n%2").arg(path, newContent);
         } else if (reqOut->toolName == "delete_file") {
             reqOut->diffPreview = QString("--- [DELETION TARGET]: %1\n(Recovery backup will be preserved)").arg(reqOut->arguments["path"].toString());
+        } else if (reqOut->toolName == "execute_terminal_command") {
+            QString cmd = reqOut->arguments["command"].toString();
+            QJsonArray args = reqOut->arguments["arguments"].toArray();
+            QStringList argList;
+            for (const auto& a : args) argList.append(a.toString());
+            QString dir = reqOut->arguments["working_directory"].toString();
+            reqOut->diffPreview = QString("Command: %1 %2\nDirectory: %3\n[Security Risk: Host Execution]")
+                                      .arg(cmd, argList.join(" "), dir.isEmpty() ? "(workspace root)" : dir);
+        } else if (reqOut->toolName == "terminate_process") {
+            qint64 pid = reqOut->arguments["pid"].toInteger();
+            bool force = reqOut->arguments["force"].toBool();
+            reqOut->diffPreview = QString("Process Action: Terminate PID %1 (%2)")
+                                      .arg(pid).arg(force ? "SIGKILL - Force" : "SIGTERM - Graceful");
+        } else if (reqOut->toolName == "launch_application") {
+            QString app = reqOut->arguments["application"].toString();
+            reqOut->diffPreview = QString("Launch Installed Application: %1").arg(app);
+        } else if (reqOut->toolName == "open_resource") {
+            QString target = reqOut->arguments["target"].toString();
+            reqOut->diffPreview = QString("Open System Resource: %1").arg(target);
         }
     }
     return true;
@@ -282,6 +301,12 @@ void AgentEngine::proceedWithToolExecution(const ToolExecutionRequest& req) {
             QString backup = result.backupIds.isEmpty() ? QString() : result.backupIds.first();
             m_db->recordFileAudit(m_currentTask.id, f, req.toolName, backup);
         }
+    }
+
+    if (m_db && req.toolName == "execute_terminal_command") {
+        QString cmd = req.arguments["command"].toString();
+        QString dir = req.arguments["working_directory"].toString();
+        m_db->recordTerminalAudit(m_currentTask.id, cmd, dir, result.success ? 0 : 1, 0, step.approvalStatus, result.output);
     }
 
     if (m_db) {

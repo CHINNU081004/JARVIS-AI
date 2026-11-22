@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(JARVIS VERSION 1.0.0 LANGUAGES CXX)
+project(JARVIS VERSION 2.2.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -42,6 +42,12 @@ set(JARVIS_CORE_SOURCES
     src/workspace/WorkspaceManager.cpp
     src/agent/ITool.h
     src/agent/WorkspaceTools.h
+    src/agent/TerminalTypes.h
+    src/agent/TerminalService.h
+    src/agent/TerminalService.cpp
+    src/agent/SystemPlatformService.h
+    src/agent/SystemPlatformService.cpp
+    src/agent/SystemTools.h
     src/agent/ToolRegistry.h
     src/agent/ToolRegistry.cpp
     src/agent/AgentEngine.h
@@ -94,6 +100,15 @@ target_link_libraries(test_agent_phase2 PRIVATE
 )
 add_test(NAME TestAgentPhase2 COMMAND test_agent_phase2)
 
+add_executable(test_agent_phase2_2
+    tests/TestAgentPhase2_2.cpp
+)
+target_link_libraries(test_agent_phase2_2 PRIVATE
+    jarvis_core
+    Qt6::Test
+)
+add_test(NAME TestAgentPhase2_2 COMMAND test_agent_phase2_2)
+
 # Installation specification for packaging
 include(GNUInstallDirs)
 install(TARGETS jarvis
@@ -114,7 +129,7 @@ install(FILES src/ui/assets/icon.png DESTINATION share/pixmaps RENAME jarvis.png
 set(CPACK_PACKAGE_NAME "jarvis")
 set(CPACK_PACKAGE_VENDOR "JarvisAI")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "JARVIS - Native Futuristic AI Desktop Assistant")
-set(CPACK_PACKAGE_VERSION "1.0.0")
+set(CPACK_PACKAGE_VERSION "2.2.0")
 set(CPACK_GENERATOR "DEB")
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Jarvis Engineering <support@jarvis-ai.local>")
 set(CPACK_DEBIAN_PACKAGE_SECTION "utils")

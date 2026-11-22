@@ -100,6 +100,16 @@ Item {
                 ctx.moveTo(w * 0.60, h * 0.60);
                 ctx.lineTo(w * 0.85, h * 0.85);
                 ctx.stroke();
+            } else if (root.name === "terminal" || root.name === "console") {
+                ctx.beginPath();
+                ctx.moveTo(w * 0.15, h * 0.25);
+                ctx.lineTo(w * 0.45, h * 0.5);
+                ctx.lineTo(w * 0.15, h * 0.75);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(w * 0.5, h * 0.75);
+                ctx.lineTo(w * 0.85, h * 0.75);
+                ctx.stroke();
             } else if (root.name === "chevron-down") {
                 ctx.beginPath();
                 ctx.moveTo(w * 0.25, h * 0.38);

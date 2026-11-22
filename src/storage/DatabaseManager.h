@@ -41,11 +41,12 @@ public:
     bool saveSetting(const QString& key, const QString& value);
     QString getSetting(const QString& key, const QString& defaultValue = QString());
 
-    // Phase 2.1 Agent Task & Audit Persistence
+    // Phase 2.1 & 2.2 Agent Task & Audit Persistence
     bool saveTask(const AgentTask& task);
     bool updateTaskStatus(const QString& taskId, AgentTaskStatus status, const QString& errorMsg = QString(), const QString& summary = QString());
     bool recordTaskStep(const QString& taskId, const AgentTaskStep& step);
     bool recordFileAudit(const QString& taskId, const QString& filePath, const QString& action, const QString& backupPath = QString());
+    bool recordTerminalAudit(const QString& taskId, const QString& command, const QString& workingDir, int exitCode, qint64 durationMs, const QString& approvalStatus, const QString& output);
     QList<AgentTask> getRecentTasks(int limit = 20);
     AgentTask getTask(const QString& taskId);
 

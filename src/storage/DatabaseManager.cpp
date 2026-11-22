@@ -127,6 +127,20 @@ bool DatabaseManager::initialize() {
            "FOREIGN KEY(task_id) REFERENCES agent_tasks(id)"
            ")");
 
+    // Phase 2.2 Terminal Audits Table
+    q.exec("CREATE TABLE IF NOT EXISTS agent_terminal_audits ("
+           "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+           "task_id TEXT, "
+           "command TEXT, "
+           "working_dir TEXT, "
+           "exit_code INTEGER, "
+           "duration_ms INTEGER, "
+           "approval_status TEXT, "
+           "sanitized_output TEXT, "
+           "timestamp DATETIME, "
+           "FOREIGN KEY(task_id) REFERENCES agent_tasks(id)"
+           ")");
+
     // Clean up any previously interrupted running tasks on restart per Phase 2.1 Rule 6
     q.exec("UPDATE agent_tasks SET status = 'Interrupted' WHERE status IN ('Planning', 'ExecutingTool', 'AwaitingApproval')");
 
@@ -516,6 +530,24 @@ QList<AgentTask> DatabaseManager::getRecentTasks(int limit) {
         }
     }
     return tasks;
+}
+
+bool DatabaseManager::recordTerminalAudit(const QString& taskId, const QString& command, const QString& workingDir,
+                                          int exitCode, qint64 durationMs, const QString& approvalStatus, const QString& output)
+{
+    QMutexLocker locker(&m_mutex);
+    QSqlQuery q(m_db);
+    q.prepare("INSERT INTO agent_terminal_audits (task_id, command, working_dir, exit_code, duration_ms, approval_status, sanitized_output, timestamp) "
+              "VALUES (:tid, :cmd, :dir, :exit, :dur, :appr, :out, :time)");
+    q.bindValue(":tid", taskId);
+    q.bindValue(":cmd", command);
+    q.bindValue(":dir", workingDir);
+    q.bindValue(":exit", exitCode);
+    q.bindValue(":dur", durationMs);
+    q.bindValue(":appr", approvalStatus);
+    q.bindValue(":out", output.left(4096)); // Bounded audit output
+    q.bindValue(":time", QDateTime::currentDateTime());
+    return q.exec();
 }
 
 AgentTask DatabaseManager::getTask(const QString& taskId) {

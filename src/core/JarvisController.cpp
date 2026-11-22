@@ -203,13 +203,22 @@ bool JarvisController::initialize() {
     testActiveProvider();
     refreshModels();
 
-    // 6. Register Phase 2.1 Workspace Tools
+    // 6. Register Phase 2.1 Workspace Tools & Phase 2.2 OS/Terminal Tools
     m_toolRegistry.registerTool(std::make_shared<ListWorkspaceFilesTool>(&m_workspace));
     m_toolRegistry.registerTool(std::make_shared<ReadWorkspaceFileTool>(&m_workspace));
     m_toolRegistry.registerTool(std::make_shared<SearchWorkspaceFilesTool>(&m_workspace));
     m_toolRegistry.registerTool(std::make_shared<CreateFileTool>(&m_workspace));
     m_toolRegistry.registerTool(std::make_shared<EditFileTool>(&m_workspace));
     m_toolRegistry.registerTool(std::make_shared<DeleteFileTool>(&m_workspace));
+
+    // Phase 2.2 Tools
+    m_toolRegistry.registerTool(std::make_shared<TerminalCommandTool>(&m_terminalService, &m_workspace));
+    m_toolRegistry.registerTool(std::make_shared<SystemInfoTool>());
+    m_toolRegistry.registerTool(std::make_shared<ProcessListTool>());
+    m_toolRegistry.registerTool(std::make_shared<ProcessInspectTool>());
+    m_toolRegistry.registerTool(std::make_shared<ProcessTerminateTool>());
+    m_toolRegistry.registerTool(std::make_shared<OpenResourceTool>());
+    m_toolRegistry.registerTool(std::make_shared<LaunchAppTool>());
 
     // Connect Agent Engine signals to Activity timeline
     connect(&m_agent, &AgentEngine::stepCompleted, this, [this](int step, const QString& tool, const QString& res) {
@@ -709,6 +718,76 @@ void JarvisController::setContextTruncateLimit(int limit) {
     m_contextTruncateLimit = limit;
     m_db.saveSetting("dev_context_limit", QString::number(limit));
     emit devSettingsChanged();
+}
+
+QVariantMap JarvisController::getSystemInfo() {
+    SystemInfoData info = SystemPlatformService::getSystemInfo();
+    QVariantMap map;
+    map["osName"] = info.osName;
+    map["kernelVersion"] = info.kernelVersion;
+    map["hostName"] = info.hostName;
+    map["cpuModel"] = info.cpuModel;
+    map["cpuCores"] = info.cpuCores;
+    map["totalRamMb"] = info.totalRamBytes / (1024 * 1024);
+    map["availableRamMb"] = info.availableRamBytes / (1024 * 1024);
+    map["totalDiskGb"] = static_cast<double>(info.totalDiskBytes) / (1024.0 * 1024.0 * 1024.0);
+    map["availableDiskGb"] = static_cast<double>(info.availableDiskBytes) / (1024.0 * 1024.0 * 1024.0);
+    map["uptimeSeconds"] = info.uptimeSeconds;
+    map["networkInterfaces"] = info.networkInterfaces;
+    return map;
+}
+
+QVariantList JarvisController::listProcesses(const QString& filter) {
+    QVariantList list;
+    auto procs = SystemPlatformService::listProcesses();
+    QString filterLower = filter.trimmed().toLower();
+    int count = 0;
+    for (const auto& p : procs) {
+        if (!filterLower.isEmpty() && !p.name.toLower().contains(filterLower) && !p.commandLine.toLower().contains(filterLower)) {
+            continue;
+        }
+        QVariantMap map;
+        map["pid"] = p.pid;
+        map["name"] = p.name;
+        map["memoryRssMb"] = p.memoryRssBytes / (1024 * 1024);
+        map["state"] = p.state;
+        map["command"] = p.commandLine.left(120);
+        list.append(map);
+        if (++count >= 100) break;
+    }
+    return list;
+}
+
+bool JarvisController::terminateProcess(qint64 pid, bool force) {
+    QString err;
+    bool ok = SystemPlatformService::terminateProcess(pid, force, &err);
+    if (ok) {
+        logEvent("WARN", "Process Terminated", QString("Terminated PID %1 (%2)").arg(pid).arg(force ? "SIGKILL" : "SIGTERM"), "System");
+    } else {
+        logEvent("ERROR", "Process Termination Failed", err, "System");
+    }
+    return ok;
+}
+
+QString JarvisController::executeTerminalCommandDirect(const QString& command, const QStringList& args, const QString& workingDir) {
+    QString dir = workingDir.isEmpty() ? (m_workspace.isValid() ? m_workspace.currentPath() : QDir::homePath()) : workingDir;
+    auto res = m_terminalService.executeCommand(command, args, dir);
+    logEvent(res.success ? "INFO" : "WARN", "Terminal Executed", QString("%1 (exit %2, %3 ms)").arg(command).arg(res.exitCode).arg(res.durationMs), "Terminal");
+    return res.success ? res.stdoutStr : (res.errorMessage + "\n" + res.stderrStr);
+}
+
+bool JarvisController::openResourceDirect(const QString& target) {
+    QString err;
+    bool ok = SystemPlatformService::openResource(target, &err);
+    logEvent(ok ? "INFO" : "WARN", "Resource Opened", target, "System");
+    return ok;
+}
+
+bool JarvisController::launchApplicationDirect(const QString& appName, const QStringList& args) {
+    QString err;
+    bool ok = SystemPlatformService::launchApplication(appName, args, &err);
+    logEvent(ok ? "INFO" : "WARN", "Application Launched", appName, "System");
+    return ok;
 }
 
 } // namespace Jarvis
