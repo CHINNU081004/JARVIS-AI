@@ -88,6 +88,12 @@ install(TARGETS jarvis
 # Desktop entry & Icon
 install(FILES debian/jarvis.desktop DESTINATION share/applications)
 install(FILES src/ui/assets/icon.png DESTINATION share/icons/hicolor/256x256/apps RENAME jarvis.png)
+install(FILES src/ui/assets/icon_128.png DESTINATION share/icons/hicolor/128x128/apps RENAME jarvis.png)
+install(FILES src/ui/assets/icon_64.png DESTINATION share/icons/hicolor/64x64/apps RENAME jarvis.png)
+install(FILES src/ui/assets/icon_48.png DESTINATION share/icons/hicolor/48x48/apps RENAME jarvis.png)
+install(FILES src/ui/assets/icon_32.png DESTINATION share/icons/hicolor/32x32/apps RENAME jarvis.png)
+install(FILES src/ui/assets/icon_16.png DESTINATION share/icons/hicolor/16x16/apps RENAME jarvis.png)
+install(FILES src/ui/assets/icon.png DESTINATION share/pixmaps RENAME jarvis.png)
 
 # CPack configuration for Debian package (.deb)
 set(CPACK_PACKAGE_NAME "jarvis")

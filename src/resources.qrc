@@ -3,6 +3,8 @@
         <file>ui/Main.qml</file>
         <file>ui/GlassCard.qml</file>
         <file>ui/GlassButton.qml</file>
+        <file>ui/GlassTextField.qml</file>
+        <file>ui/GlassComboBox.qml</file>
         <file>ui/HologramGlobe.qml</file>
         <file>ui/VoiceWaveform.qml</file>
         <file>ui/ParticlesField.qml</file>

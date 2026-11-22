@@ -75,6 +75,14 @@ Item {
                 ctx.fillStyle = root.color;
                 ctx.fillRect(w * 0.3, h * 0.42, 2.5, 4);
                 ctx.fillRect(w * 0.6, h * 0.42, 2.5, 4);
+            } else if (root.name === "search") {
+                ctx.beginPath();
+                ctx.arc(w * 0.42, h * 0.42, w * 0.25, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(w * 0.60, h * 0.60);
+                ctx.lineTo(w * 0.85, h * 0.85);
+                ctx.stroke();
             } else if (root.name === "chevron-down") {
                 ctx.beginPath();
                 ctx.moveTo(w * 0.25, h * 0.38);

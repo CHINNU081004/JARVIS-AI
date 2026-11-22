@@ -87,6 +87,11 @@ class JarvisController : public QObject {
     Q_PROPERTY(bool memoryEnabled READ memoryEnabled WRITE setMemoryEnabled NOTIFY memorySettingsChanged)
     Q_PROPERTY(int maxMemoryRetrievalCount READ maxMemoryRetrievalCount WRITE setMaxMemoryRetrievalCount NOTIFY memorySettingsChanged)
 
+    Q_PROPERTY(double temperature READ temperature WRITE setTemperature NOTIFY generationSettingsChanged)
+    Q_PROPERTY(int maxTokens READ maxTokens WRITE setMaxTokens NOTIFY generationSettingsChanged)
+    Q_PROPERTY(bool streamEnabled READ streamEnabled WRITE setStreamEnabled NOTIFY generationSettingsChanged)
+    Q_PROPERTY(QString accentColor READ accentColor WRITE setAccentColor NOTIFY accentColorChanged)
+
     Q_PROPERTY(ChatMessageModel* chatModel READ chatModel CONSTANT)
     Q_PROPERTY(ActivityModel* activityModel READ activityModel CONSTANT)
     Q_PROPERTY(ModelListModel* modelListModel READ modelListModel CONSTANT)
@@ -122,6 +127,18 @@ public:
 
     int maxMemoryRetrievalCount() const { return m_maxMemoryRetrievalCount; }
     void setMaxMemoryRetrievalCount(int count);
+
+    double temperature() const { return m_temperature; }
+    void setTemperature(double t);
+
+    int maxTokens() const { return m_maxTokens; }
+    void setMaxTokens(int mt);
+
+    bool streamEnabled() const { return m_streamEnabled; }
+    void setStreamEnabled(bool s);
+
+    QString accentColor() const { return m_accentColor; }
+    void setAccentColor(const QString& color);
 
     ChatMessageModel* chatModel() { return &m_chatModel; }
     ActivityModel* activityModel() { return &m_activityModel; }
@@ -163,6 +180,8 @@ signals:
     void activeTaskChanged();
     void animationIntensityChanged();
     void memorySettingsChanged();
+    void generationSettingsChanged();
+    void accentColorChanged();
     void modelsListChanged();
     void errorNotice(const QString& title, const QString& message);
 
@@ -200,6 +219,10 @@ private:
     bool m_particlesEnabled = true;
     bool m_memoryEnabled = true;
     int m_maxMemoryRetrievalCount = 3;
+    double m_temperature = 0.7;
+    int m_maxTokens = 4096;
+    bool m_streamEnabled = true;
+    QString m_accentColor = "#00f0ff";
 };
 
 } // namespace Jarvis

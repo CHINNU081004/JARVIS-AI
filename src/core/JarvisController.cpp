@@ -156,6 +156,11 @@ bool JarvisController::initialize() {
     m_maxMemoryRetrievalCount = m_db.getSetting("memory_max_retrieval", "3").toInt();
     if (m_maxMemoryRetrievalCount <= 0) m_maxMemoryRetrievalCount = 3;
 
+    m_temperature = m_db.getSetting("gen_temperature", "0.7").toDouble();
+    m_maxTokens = m_db.getSetting("gen_max_tokens", "4096").toInt();
+    m_streamEnabled = m_db.getSetting("gen_stream_enabled", "1") == "1";
+    m_accentColor = m_db.getSetting("ui_accent_color", "#00f0ff");
+
     // 3. Register Providers
     auto* localOllama = new OllamaAdapter("ollama_local", "http://127.0.0.1:11434", this);
     auto* remoteOllama = new OllamaAdapter("ollama_remote", m_db.getSetting("remote_ollama_url", "http://remote-server:11434"), this);
@@ -590,6 +595,34 @@ void JarvisController::addMemory(const QString& key, const QString& content, con
 void JarvisController::deleteMemory(const QString& id) {
     m_db.deleteMemory(id);
     logEvent("INFO", "Memory Deleted", QString("ID: %1").arg(id), "Memory");
+}
+
+void JarvisController::setTemperature(double t) {
+    if (qFuzzyCompare(m_temperature, t)) return;
+    m_temperature = t;
+    m_db.saveSetting("gen_temperature", QString::number(t, 'f', 2));
+    emit generationSettingsChanged();
+}
+
+void JarvisController::setMaxTokens(int mt) {
+    if (m_maxTokens == mt) return;
+    m_maxTokens = mt;
+    m_db.saveSetting("gen_max_tokens", QString::number(mt));
+    emit generationSettingsChanged();
+}
+
+void JarvisController::setStreamEnabled(bool s) {
+    if (m_streamEnabled == s) return;
+    m_streamEnabled = s;
+    m_db.saveSetting("gen_stream_enabled", s ? "1" : "0");
+    emit generationSettingsChanged();
+}
+
+void JarvisController::setAccentColor(const QString& color) {
+    if (m_accentColor == color) return;
+    m_accentColor = color;
+    m_db.saveSetting("ui_accent_color", color);
+    emit accentColorChanged();
 }
 
 } // namespace Jarvis

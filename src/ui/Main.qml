@@ -110,8 +110,8 @@ ApplicationWindow {
                 }
             }
 
-            // Polished Model Selection Dropdown with Custom Glassmorphism Popup & Vector Chevron
-            ComboBox {
+            // Polished Model Selection Dropdown using GlassComboBox
+            GlassComboBox {
                 id: modelCombo
                 model: jarvis.modelListModel
                 textRole: "displayName"
@@ -125,82 +125,6 @@ ApplicationWindow {
                     var selId = jarvis.modelListModel.idAt(index);
                     if (selId !== "") {
                         jarvis.selectModel(selId);
-                    }
-                }
-
-                background: Rectangle {
-                    implicitWidth: 230
-                    implicitHeight: 36
-                    radius: 12
-                    color: "#0c1b3d"
-                    border.color: modelCombo.hovered ? "#00f0ff" : "#1e3a8a"
-                    border.width: 1.5
-
-                    Behavior on border.color { ColorAnimation { duration: 150 } }
-                }
-
-                indicator: Item {
-                    x: modelCombo.width - width - 12
-                    y: (modelCombo.height - height) / 2
-                    width: 16
-                    height: 16
-                    VectorIcon {
-                        anchors.centerIn: parent
-                        name: "chevron-down"
-                        color: "#00f0ff"
-                        width: 14; height: 14
-                        rotation: modelCombo.popup.visible ? 180 : 0
-                        Behavior on rotation { NumberAnimation { duration: 200 } }
-                    }
-                }
-
-                contentItem: Text {
-                    leftPadding: 14
-                    rightPadding: modelCombo.indicator.width + 16
-                    text: modelCombo.displayText !== "" ? modelCombo.displayText : "No models found"
-                    font.pixelSize: 12
-                    font.bold: true
-                    color: modelCombo.count > 0 ? "#00f0ff" : "#64748b"
-                    verticalAlignment: Text.AlignVCenter
-                    elide: Text.ElideRight
-                }
-
-                popup: Popup {
-                    y: modelCombo.height + 4
-                    width: modelCombo.width
-                    implicitHeight: Math.min(contentItem.implicitHeight + 16, 260)
-                    padding: 6
-
-                    contentItem: ListView {
-                        clip: true
-                        implicitHeight: contentHeight
-                        model: modelCombo.popup.visible ? modelCombo.delegateModel : null
-                        currentIndex: modelCombo.highlightedIndex
-                        ScrollIndicator.vertical: ScrollIndicator { }
-                    }
-
-                    background: Rectangle {
-                        radius: 12
-                        color: "#09142c"
-                        border.color: "#00f0ff"
-                        border.width: 1.5
-                    }
-                }
-
-                delegate: ItemDelegate {
-                    width: modelCombo.width - 12
-                    height: 38
-                    contentItem: Text {
-                        text: model.displayName
-                        color: highlighted ? "#00f0ff" : "#f8fafc"
-                        font.pixelSize: 12
-                        font.bold: highlighted
-                        verticalAlignment: Text.AlignVCenter
-                        elide: Text.ElideRight
-                    }
-                    background: Rectangle {
-                        radius: 8
-                        color: highlighted ? "#1a3672" : "transparent"
                     }
                 }
             }
@@ -401,17 +325,12 @@ ApplicationWindow {
                     Layout.fillWidth: true
                     spacing: 8
 
-                    TextField {
+                    GlassTextField {
                         id: inputField
                         Layout.fillWidth: true
                         placeholderText: "Type your instruction or message to JARVIS..."
-                        color: "#f8fafc"
-                        background: Rectangle {
-                            radius: 10
-                            color: "#0a1738"
-                            border.color: inputField.activeFocus ? "#00f0ff" : "#1e3a8a"
-                            border.width: 1
-                        }
+                        leadingIcon: "chat"
+                        trailingClearButton: true
                         onAccepted: {
                             if (text.trim() !== "") {
                                 jarvis.sendMessage(text);
@@ -441,17 +360,13 @@ ApplicationWindow {
                 visible: activeTab === "Workspace"
 
                 RowLayout {
-                    TextField {
+                    GlassTextField {
                         id: wsInput
                         Layout.fillWidth: true
                         text: jarvis.workspace.currentPath
                         placeholderText: "Workspace folder path (e.g. /home/chinnu/Desktop/JARVIS)..."
-                        background: Rectangle {
-                            radius: 10
-                            color: "#0a1738"
-                            border.color: wsInput.activeFocus ? "#00f0ff" : "#1e3a8a"
-                            border.width: 1
-                        }
+                        leadingIcon: "folder"
+                        trailingClearButton: true
                     }
                     GlassButton {
                         text: "Open Folder"
@@ -560,184 +475,333 @@ ApplicationWindow {
                 }
             }
 
-            // 4. Settings View (Phase 1.3 Universal API & GPU Options)
-            ColumnLayout {
+            // 4. Settings View (Phase 1.4 Glassmorphism Redesign & Configuration Expansion)
+            ScrollView {
                 anchors.fill: parent
                 anchors.margins: 14
-                spacing: 14
                 visible: activeTab === "Settings"
+                clip: true
 
-                Text {
-                    text: "JARVIS System Configuration"
-                    color: "#00f0ff"
-                    font.bold: true
-                    font.pixelSize: 16
-                }
+                ColumnLayout {
+                    width: parent.width - 12
+                    spacing: 16
 
-                // Visual & Animation Mode Settings
-                Rectangle {
-                    Layout.fillWidth: true
-                    height: 90
-                    radius: 12
-                    color: "#0a1738"
-                    border.color: "#1e3a8a"
-                    ColumnLayout {
-                        anchors.fill: parent
-                        anchors.margins: 10
-                        spacing: 8
-                        RowLayout {
-                            Text { text: "UI Animation Mode:"; color: "#38bdf8"; font.bold: true }
-                            GlassButton {
-                                text: "Full"
-                                isSecondary: jarvis.animationIntensity !== 2
-                                onClicked: jarvis.animationIntensity = 2
-                            }
-                            GlassButton {
-                                text: "Reduced"
-                                isSecondary: jarvis.animationIntensity !== 1
-                                onClicked: jarvis.animationIntensity = 1
-                            }
-                            GlassButton {
-                                text: "Off"
-                                isSecondary: jarvis.animationIntensity !== 0
-                                onClicked: jarvis.animationIntensity = 0
-                            }
-                        }
-                        RowLayout {
-                            Text { text: "Floating Ambient Particles:"; color: "#94a3b8" }
-                            CheckBox {
-                                checked: jarvis.particlesEnabled
-                                onToggled: jarvis.particlesEnabled = checked
-                            }
-                        }
+                    Text {
+                        text: "JARVIS System Configuration"
+                        color: "#00f0ff"
+                        font.bold: true
+                        font.pixelSize: 17
                     }
-                }
 
-                // Memory Retrieval Controls
-                Rectangle {
-                    Layout.fillWidth: true
-                    height: 80
-                    radius: 12
-                    color: "#0a1738"
-                    border.color: "#1e3a8a"
-                    ColumnLayout {
-                        anchors.fill: parent
-                        anchors.margins: 10
-                        spacing: 6
-                        RowLayout {
-                            Text { text: "Enable Persistent Memory Context:"; color: "#38bdf8"; font.bold: true }
-                            CheckBox {
-                                checked: jarvis.memoryEnabled
-                                onToggled: jarvis.memoryEnabled = checked
-                            }
-                        }
-                        RowLayout {
-                            Text { text: "Max Relevant Memories Injected:"; color: "#94a3b8" }
-                            SpinBox {
-                                from: 1; to: 10
-                                value: jarvis.maxMemoryRetrievalCount
-                                onValueModified: jarvis.maxMemoryRetrievalCount = value
-                            }
-                        }
-                    }
-                }
-
-                // Provider Endpoints & Universal API Protocol Configuration
-                Text {
-                    text: "Provider Network Endpoints"
-                    color: "#00f0ff"
-                    font.bold: true
-                    font.pixelSize: 14
-                }
-
-                RowLayout {
-                    Text { text: "Active Provider:"; color: "#38bdf8"; font.bold: true; Layout.preferredWidth: 160 }
-                    GlassButton {
-                        text: "Local Ollama"
-                        isSecondary: jarvis.selectedProviderId !== "ollama_local"
-                        onClicked: jarvis.selectProvider("ollama_local")
-                    }
-                    GlassButton {
-                        text: "Remote Ollama"
-                        isSecondary: jarvis.selectedProviderId !== "ollama_remote"
-                        onClicked: jarvis.selectProvider("ollama_remote")
-                    }
-                    GlassButton {
-                        text: "API"
-                        isSecondary: jarvis.selectedProviderId !== "universal_api" && jarvis.selectedProviderId !== "generic_api"
-                        onClicked: jarvis.selectProvider("universal_api")
-                    }
-                }
-
-                RowLayout {
-                    Text { text: "Remote Ollama Endpoint:"; color: "#94a3b8"; Layout.preferredWidth: 160 }
-                    TextField {
-                        id: remoteOllamaUrl
-                        text: "http://remote-gpu:11434"
+                    // 1. Visual & Theme Customization Card
+                    Rectangle {
                         Layout.fillWidth: true
-                        background: Rectangle { radius: 8; color: "#0a1738"; border.color: "#1e3a8a" }
-                    }
-                    GlassButton {
-                        text: "Save & Connect"
-                        onClicked: jarvis.updateProviderEndpoint("ollama_remote", remoteOllamaUrl.text)
-                    }
-                }
+                        implicitHeight: themeCol.implicitHeight + 24
+                        radius: 14
+                        color: "#07122a"
+                        border.color: "#1e3a8a"
 
-                // Universal API Configuration Block
-                Rectangle {
-                    Layout.fillWidth: true
-                    height: 110
-                    radius: 12
-                    color: "#0a1738"
-                    border.color: "#1e3a8a"
-                    ColumnLayout {
-                        anchors.fill: parent
-                        anchors.margins: 10
-                        spacing: 8
+                        ColumnLayout {
+                            id: themeCol
+                            anchors.fill: parent
+                            anchors.margins: 12
+                            spacing: 10
 
-                        RowLayout {
-                            Text { text: "API Protocol:"; color: "#38bdf8"; font.bold: true; Layout.preferredWidth: 140 }
-                            ComboBox {
-                                id: apiProtoCombo
-                                model: ["OpenAI-Compatible", "Anthropic", "Google Gemini", "Custom HTTP"]
-                                currentIndex: {
-                                    var curr = jarvis.getProviderProtocol("universal_api");
-                                    var idx = model.indexOf(curr);
-                                    return idx >= 0 ? idx : 0;
+                            Text {
+                                text: "Appearance & Effects"
+                                color: "#00f0ff"
+                                font.bold: true
+                                font.pixelSize: 13
+                            }
+
+                            RowLayout {
+                                Text { text: "UI Animation Mode:"; color: "#94a3b8"; Layout.preferredWidth: 170 }
+                                GlassButton {
+                                    text: "Full"
+                                    isSecondary: jarvis.animationIntensity !== 2
+                                    onClicked: jarvis.animationIntensity = 2
                                 }
-                                implicitWidth: 180
-                                implicitHeight: 32
+                                GlassButton {
+                                    text: "Reduced"
+                                    isSecondary: jarvis.animationIntensity !== 1
+                                    onClicked: jarvis.animationIntensity = 1
+                                }
+                                GlassButton {
+                                    text: "Off"
+                                    isSecondary: jarvis.animationIntensity !== 0
+                                    onClicked: jarvis.animationIntensity = 0
+                                }
+                            }
+
+                            RowLayout {
+                                Text { text: "Ambient Particles:"; color: "#94a3b8"; Layout.preferredWidth: 170 }
+                                CheckBox {
+                                    checked: jarvis.particlesEnabled
+                                    onToggled: jarvis.particlesEnabled = checked
+                                }
+                                Text {
+                                    text: jarvis.particlesEnabled ? "Enabled (Holographic space)" : "Disabled"
+                                    color: jarvis.particlesEnabled ? "#10b981" : "#64748b"
+                                    font.pixelSize: 11
+                                }
+                            }
+
+                            RowLayout {
+                                Text { text: "Accent Theme Glow:"; color: "#94a3b8"; Layout.preferredWidth: 170 }
+                                Repeater {
+                                    model: [
+                                        { name: "Cyan", color: "#00f0ff" },
+                                        { name: "Cobalt", color: "#38bdf8" },
+                                        { name: "Emerald", color: "#10b981" },
+                                        { name: "Amber", color: "#f59e0b" },
+                                        { name: "Purple", color: "#c084fc" }
+                                    ]
+                                    delegate: Rectangle {
+                                        width: 26; height: 26
+                                        radius: 13
+                                        color: modelData.color
+                                        border.color: jarvis.accentColor === modelData.color ? "#ffffff" : "transparent"
+                                        border.width: 2
+                                        MouseArea {
+                                            anchors.fill: parent
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: jarvis.accentColor = modelData.color
+                                        }
+                                    }
+                                }
                             }
                         }
+                    }
 
-                        RowLayout {
-                            Text { text: "API Base Endpoint:"; color: "#94a3b8"; Layout.preferredWidth: 140 }
-                            TextField {
-                                id: universalApiUrl
-                                text: {
-                                    if (apiProtoCombo.currentText === "Anthropic") return "https://api.anthropic.com";
-                                    if (apiProtoCombo.currentText === "Google Gemini") return "https://generativelanguage.googleapis.com";
-                                    return "https://api.openai.com/v1";
+                    // 2. Generation & Inference Parameters Card
+                    Rectangle {
+                        Layout.fillWidth: true
+                        implicitHeight: genCol.implicitHeight + 24
+                        radius: 14
+                        color: "#07122a"
+                        border.color: "#1e3a8a"
+
+                        ColumnLayout {
+                            id: genCol
+                            anchors.fill: parent
+                            anchors.margins: 12
+                            spacing: 10
+
+                            Text {
+                                text: "AI Generation Parameters"
+                                color: "#00f0ff"
+                                font.bold: true
+                                font.pixelSize: 13
+                            }
+
+                            RowLayout {
+                                Text { text: "Temperature (" + tempSlider.value.toFixed(2) + "):"; color: "#94a3b8"; Layout.preferredWidth: 170 }
+                                Slider {
+                                    id: tempSlider
+                                    Layout.fillWidth: true
+                                    from: 0.0
+                                    to: 1.5
+                                    stepSize: 0.05
+                                    value: jarvis.temperature
+                                    onMoved: jarvis.temperature = value
                                 }
-                                Layout.fillWidth: true
-                                background: Rectangle { radius: 8; color: "#060e24"; border.color: "#1e3a8a" }
+                                Text {
+                                    text: tempSlider.value <= 0.3 ? "Precise" : (tempSlider.value <= 0.8 ? "Balanced" : "Creative")
+                                    color: "#38bdf8"
+                                    font.pixelSize: 11
+                                    Layout.preferredWidth: 60
+                                }
                             }
-                            TextField {
-                                id: universalApiKey
-                                placeholderText: "API Key (Redacted in logs)"
-                                echoMode: TextInput.Password
-                                Layout.fillWidth: true
-                                background: Rectangle { radius: 8; color: "#060e24"; border.color: "#1e3a8a" }
+
+                            RowLayout {
+                                Text { text: "Max Generation Tokens:"; color: "#94a3b8"; Layout.preferredWidth: 170 }
+                                SpinBox {
+                                    from: 256
+                                    to: 16384
+                                    stepSize: 256
+                                    value: jarvis.maxTokens
+                                    onValueModified: jarvis.maxTokens = value
+                                }
+                                Text { text: "tokens per request"; color: "#64748b"; font.pixelSize: 11 }
                             }
-                            GlassButton {
-                                text: "Save & Connect"
-                                onClicked: jarvis.updateProviderEndpoint("universal_api", universalApiUrl.text, universalApiKey.text, apiProtoCombo.currentText)
+
+                            RowLayout {
+                                Text { text: "Stream Responses:"; color: "#94a3b8"; Layout.preferredWidth: 170 }
+                                CheckBox {
+                                    checked: jarvis.streamEnabled
+                                    onToggled: jarvis.streamEnabled = checked
+                                }
+                                Text {
+                                    text: jarvis.streamEnabled ? "Real-time progressive token streaming" : "Wait for full completion"
+                                    color: jarvis.streamEnabled ? "#10b981" : "#64748b"
+                                    font.pixelSize: 11
+                                }
                             }
                         }
                     }
-                }
 
-                Item { Layout.fillHeight: true }
+                    // 3. Persistent Memory & Context Management Card
+                    Rectangle {
+                        Layout.fillWidth: true
+                        implicitHeight: memCol.implicitHeight + 24
+                        radius: 14
+                        color: "#07122a"
+                        border.color: "#1e3a8a"
+
+                        ColumnLayout {
+                            id: memCol
+                            anchors.fill: parent
+                            anchors.margins: 12
+                            spacing: 10
+
+                            Text {
+                                text: "Persistent Memory & Privacy"
+                                color: "#00f0ff"
+                                font.bold: true
+                                font.pixelSize: 13
+                            }
+
+                            RowLayout {
+                                Text { text: "Persistent Context Retrieval:"; color: "#94a3b8"; Layout.preferredWidth: 170 }
+                                CheckBox {
+                                    checked: jarvis.memoryEnabled
+                                    onToggled: jarvis.memoryEnabled = checked
+                                }
+                                Text {
+                                    text: jarvis.memoryEnabled ? "Active (SQLite encrypted store)" : "Disabled"
+                                    color: jarvis.memoryEnabled ? "#10b981" : "#f59e0b"
+                                    font.pixelSize: 11
+                                }
+                            }
+
+                            RowLayout {
+                                Text { text: "Max Injected Memories:"; color: "#94a3b8"; Layout.preferredWidth: 170 }
+                                SpinBox {
+                                    from: 1; to: 10
+                                    value: jarvis.maxMemoryRetrievalCount
+                                    onValueModified: jarvis.maxMemoryRetrievalCount = value
+                                }
+                                Text { text: "top relevant items"; color: "#64748b"; font.pixelSize: 11 }
+                            }
+                        }
+                    }
+
+                    // 4. Provider Endpoints & Universal API Protocol Configuration
+                    Rectangle {
+                        Layout.fillWidth: true
+                        implicitHeight: provCol.implicitHeight + 24
+                        radius: 14
+                        color: "#07122a"
+                        border.color: "#1e3a8a"
+
+                        ColumnLayout {
+                            id: provCol
+                            anchors.fill: parent
+                            anchors.margins: 12
+                            spacing: 12
+
+                            Text {
+                                text: "AI Model Providers & Cloud Endpoints"
+                                color: "#00f0ff"
+                                font.bold: true
+                                font.pixelSize: 13
+                            }
+
+                            RowLayout {
+                                Text { text: "Active Provider:"; color: "#94a3b8"; Layout.preferredWidth: 170 }
+                                GlassButton {
+                                    text: "Local Ollama"
+                                    isSecondary: jarvis.selectedProviderId !== "ollama_local"
+                                    onClicked: jarvis.selectProvider("ollama_local")
+                                }
+                                GlassButton {
+                                    text: "Remote Ollama"
+                                    isSecondary: jarvis.selectedProviderId !== "ollama_remote"
+                                    onClicked: jarvis.selectProvider("ollama_remote")
+                                }
+                                GlassButton {
+                                    text: "API"
+                                    isSecondary: jarvis.selectedProviderId !== "universal_api" && jarvis.selectedProviderId !== "generic_api"
+                                    onClicked: jarvis.selectProvider("universal_api")
+                                }
+                            }
+
+                            // Remote Ollama Config
+                            RowLayout {
+                                Text { text: "Remote Ollama Endpoint:"; color: "#94a3b8"; Layout.preferredWidth: 170 }
+                                GlassTextField {
+                                    id: remoteOllamaUrl
+                                    text: "http://remote-gpu:11434"
+                                    Layout.fillWidth: true
+                                }
+                                GlassButton {
+                                    text: "Save & Connect"
+                                    onClicked: jarvis.updateProviderEndpoint("ollama_remote", remoteOllamaUrl.text)
+                                }
+                            }
+
+                            // Universal API Configuration Block
+                            Rectangle {
+                                Layout.fillWidth: true
+                                implicitHeight: apiSubCol.implicitHeight + 20
+                                radius: 12
+                                color: "#091530"
+                                border.color: "#1e3a8a"
+
+                                ColumnLayout {
+                                    id: apiSubCol
+                                    anchors.fill: parent
+                                    anchors.margins: 10
+                                    spacing: 8
+
+                                    RowLayout {
+                                        Text { text: "API Protocol:"; color: "#38bdf8"; font.bold: true; Layout.preferredWidth: 160 }
+                                        GlassComboBox {
+                                            id: apiProtoCombo
+                                            model: ["OpenAI-Compatible", "Anthropic", "Google Gemini", "Custom HTTP"]
+                                            currentIndex: {
+                                                var curr = jarvis.getProviderProtocol("universal_api");
+                                                var idx = model.indexOf(curr);
+                                                return idx >= 0 ? idx : 0;
+                                            }
+                                            implicitWidth: 200
+                                            implicitHeight: 34
+                                        }
+                                    }
+
+                                    RowLayout {
+                                        Text { text: "API Base Endpoint:"; color: "#94a3b8"; Layout.preferredWidth: 160 }
+                                        GlassTextField {
+                                            id: universalApiUrl
+                                            text: {
+                                                if (apiProtoCombo.currentText === "Anthropic") return "https://api.anthropic.com";
+                                                if (apiProtoCombo.currentText === "Google Gemini") return "https://generativelanguage.googleapis.com";
+                                                return "https://api.openai.com/v1";
+                                            }
+                                            Layout.fillWidth: true
+                                        }
+                                    }
+
+                                    RowLayout {
+                                        Text { text: "API Authentication Key:"; color: "#94a3b8"; Layout.preferredWidth: 160 }
+                                        GlassTextField {
+                                            id: universalApiKey
+                                            placeholderText: "API Key (Redacted in telemetry logs)"
+                                            echoMode: TextInput.Password
+                                            Layout.fillWidth: true
+                                        }
+                                        GlassButton {
+                                            text: "Save & Connect"
+                                            onClicked: jarvis.updateProviderEndpoint("universal_api", universalApiUrl.text, universalApiKey.text, apiProtoCombo.currentText)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Item { Layout.fillHeight: true; height: 20 }
+                }
             }
         }
 
