@@ -488,15 +488,16 @@ ApplicationWindow {
                 }
             }
 
-            // 4. Settings View (Phase 1.4 Glassmorphism Redesign & Configuration Expansion)
+            // 4. Settings View (Phase 1.4 Glassmorphism Redesign & Clean Section Hierarchy)
             ScrollView {
                 anchors.fill: parent
                 anchors.margins: 14
                 visible: activeTab === "Settings"
                 clip: true
+                contentWidth: availableWidth
 
                 ColumnLayout {
-                    width: parent.width - 12
+                    width: parent.width
                     spacing: 16
 
                     Text {
@@ -507,18 +508,15 @@ ApplicationWindow {
                     }
 
                     // 1. Visual & Theme Customization Card
-                    Rectangle {
+                    GlassCard {
                         Layout.fillWidth: true
-                        implicitHeight: themeCol.implicitHeight + 24
-                        radius: 14
-                        color: "#07122a"
-                        border.color: "#1e3a8a"
+                        implicitHeight: themeCol.implicitHeight + 28
 
                         ColumnLayout {
                             id: themeCol
                             anchors.fill: parent
-                            anchors.margins: 12
-                            spacing: 10
+                            anchors.margins: 14
+                            spacing: 12
 
                             Text {
                                 text: "Appearance & Effects"
@@ -528,7 +526,9 @@ ApplicationWindow {
                             }
 
                             RowLayout {
-                                Text { text: "UI Animation Mode:"; color: "#94a3b8"; Layout.preferredWidth: 170 }
+                                Layout.fillWidth: true
+                                spacing: 12
+                                Text { text: "UI Animation Mode:"; color: "#94a3b8"; Layout.preferredWidth: 160 }
                                 GlassButton {
                                     text: "Full"
                                     isSecondary: jarvis.animationIntensity !== 2
@@ -544,10 +544,13 @@ ApplicationWindow {
                                     isSecondary: jarvis.animationIntensity !== 0
                                     onClicked: jarvis.animationIntensity = 0
                                 }
+                                Item { Layout.fillWidth: true }
                             }
 
                             RowLayout {
-                                Text { text: "Ambient Particles:"; color: "#94a3b8"; Layout.preferredWidth: 170 }
+                                Layout.fillWidth: true
+                                spacing: 12
+                                Text { text: "Ambient Particles:"; color: "#94a3b8"; Layout.preferredWidth: 160 }
                                 GlassCheckBox {
                                     checked: jarvis.particlesEnabled
                                     onToggled: jarvis.particlesEnabled = checked
@@ -557,48 +560,52 @@ ApplicationWindow {
                                     color: jarvis.particlesEnabled ? "#10b981" : "#64748b"
                                     font.pixelSize: 11
                                 }
+                                Item { Layout.fillWidth: true }
                             }
 
                             RowLayout {
-                                Text { text: "Accent Theme Glow:"; color: "#94a3b8"; Layout.preferredWidth: 170 }
-                                Repeater {
-                                    model: [
-                                        { name: "Cyan", color: "#00f0ff" },
-                                        { name: "Cobalt", color: "#38bdf8" },
-                                        { name: "Emerald", color: "#10b981" },
-                                        { name: "Amber", color: "#f59e0b" },
-                                        { name: "Purple", color: "#c084fc" }
-                                    ]
-                                    delegate: Rectangle {
-                                        width: 26; height: 26
-                                        radius: 13
-                                        color: modelData.color
-                                        border.color: jarvis.accentColor === modelData.color ? "#ffffff" : "transparent"
-                                        border.width: 2
-                                        MouseArea {
-                                            anchors.fill: parent
-                                            cursorShape: Qt.PointingHandCursor
-                                            onClicked: jarvis.accentColor = modelData.color
+                                Layout.fillWidth: true
+                                spacing: 12
+                                Text { text: "Accent Theme Glow:"; color: "#94a3b8"; Layout.preferredWidth: 160 }
+                                RowLayout {
+                                    spacing: 8
+                                    Repeater {
+                                        model: [
+                                            { name: "Cyan", color: "#00f0ff" },
+                                            { name: "Cobalt", color: "#38bdf8" },
+                                            { name: "Emerald", color: "#10b981" },
+                                            { name: "Amber", color: "#f59e0b" },
+                                            { name: "Purple", color: "#c084fc" }
+                                        ]
+                                        delegate: Rectangle {
+                                            width: 26; height: 26
+                                            radius: 13
+                                            color: modelData.color
+                                            border.color: jarvis.accentColor === modelData.color ? "#ffffff" : "transparent"
+                                            border.width: 2
+                                            MouseArea {
+                                                anchors.fill: parent
+                                                cursorShape: Qt.PointingHandCursor
+                                                onClicked: jarvis.accentColor = modelData.color
+                                            }
                                         }
                                     }
                                 }
+                                Item { Layout.fillWidth: true }
                             }
                         }
                     }
 
                     // 2. Generation & Inference Parameters Card
-                    Rectangle {
+                    GlassCard {
                         Layout.fillWidth: true
-                        implicitHeight: genCol.implicitHeight + 24
-                        radius: 14
-                        color: "#07122a"
-                        border.color: "#1e3a8a"
+                        implicitHeight: genCol.implicitHeight + 28
 
                         ColumnLayout {
                             id: genCol
                             anchors.fill: parent
-                            anchors.margins: 12
-                            spacing: 10
+                            anchors.margins: 14
+                            spacing: 12
 
                             Text {
                                 text: "AI Generation Parameters"
@@ -608,10 +615,12 @@ ApplicationWindow {
                             }
 
                             RowLayout {
-                                Text { text: "Temperature (" + tempSlider.value.toFixed(2) + "):"; color: "#94a3b8"; Layout.preferredWidth: 170 }
+                                Layout.fillWidth: true
+                                spacing: 12
+                                Text { text: "Temperature (" + tempSlider.value.toFixed(2) + "):"; color: "#94a3b8"; Layout.preferredWidth: 160 }
                                 GlassSlider {
                                     id: tempSlider
-                                    Layout.fillWidth: true
+                                    Layout.preferredWidth: 220
                                     from: 0.0
                                     to: 1.5
                                     stepSize: 0.05
@@ -624,10 +633,13 @@ ApplicationWindow {
                                     font.pixelSize: 11
                                     Layout.preferredWidth: 60
                                 }
+                                Item { Layout.fillWidth: true }
                             }
 
                             RowLayout {
-                                Text { text: "Max Generation Tokens:"; color: "#94a3b8"; Layout.preferredWidth: 170 }
+                                Layout.fillWidth: true
+                                spacing: 12
+                                Text { text: "Max Generation Tokens:"; color: "#94a3b8"; Layout.preferredWidth: 160 }
                                 GlassSpinBox {
                                     from: 256
                                     to: 16384
@@ -636,10 +648,13 @@ ApplicationWindow {
                                     onValueModified: jarvis.maxTokens = value
                                 }
                                 Text { text: "tokens per request"; color: "#64748b"; font.pixelSize: 11 }
+                                Item { Layout.fillWidth: true }
                             }
 
                             RowLayout {
-                                Text { text: "Stream Responses:"; color: "#94a3b8"; Layout.preferredWidth: 170 }
+                                Layout.fillWidth: true
+                                spacing: 12
+                                Text { text: "Stream Responses:"; color: "#94a3b8"; Layout.preferredWidth: 160 }
                                 GlassCheckBox {
                                     checked: jarvis.streamEnabled
                                     onToggled: jarvis.streamEnabled = checked
@@ -649,23 +664,21 @@ ApplicationWindow {
                                     color: jarvis.streamEnabled ? "#10b981" : "#64748b"
                                     font.pixelSize: 11
                                 }
+                                Item { Layout.fillWidth: true }
                             }
                         }
                     }
 
                     // 3. Persistent Memory & Context Management Card
-                    Rectangle {
+                    GlassCard {
                         Layout.fillWidth: true
-                        implicitHeight: memCol.implicitHeight + 24
-                        radius: 14
-                        color: "#07122a"
-                        border.color: "#1e3a8a"
+                        implicitHeight: memCol.implicitHeight + 28
 
                         ColumnLayout {
                             id: memCol
                             anchors.fill: parent
-                            anchors.margins: 12
-                            spacing: 10
+                            anchors.margins: 14
+                            spacing: 12
 
                             Text {
                                 text: "Persistent Memory & Privacy"
@@ -675,7 +688,9 @@ ApplicationWindow {
                             }
 
                             RowLayout {
-                                Text { text: "Persistent Context Retrieval:"; color: "#94a3b8"; Layout.preferredWidth: 170 }
+                                Layout.fillWidth: true
+                                spacing: 12
+                                Text { text: "Persistent Context Retrieval:"; color: "#94a3b8"; Layout.preferredWidth: 160 }
                                 GlassCheckBox {
                                     checked: jarvis.memoryEnabled
                                     onToggled: jarvis.memoryEnabled = checked
@@ -685,33 +700,34 @@ ApplicationWindow {
                                     color: jarvis.memoryEnabled ? "#10b981" : "#f59e0b"
                                     font.pixelSize: 11
                                 }
+                                Item { Layout.fillWidth: true }
                             }
 
                             RowLayout {
-                                Text { text: "Max Injected Memories:"; color: "#94a3b8"; Layout.preferredWidth: 170 }
+                                Layout.fillWidth: true
+                                spacing: 12
+                                Text { text: "Max Injected Memories:"; color: "#94a3b8"; Layout.preferredWidth: 160 }
                                 GlassSpinBox {
                                     from: 1; to: 10
                                     value: jarvis.maxMemoryRetrievalCount
                                     onValueModified: jarvis.maxMemoryRetrievalCount = value
                                 }
                                 Text { text: "top relevant items"; color: "#64748b"; font.pixelSize: 11 }
+                                Item { Layout.fillWidth: true }
                             }
                         }
                     }
 
                     // 4. Provider Endpoints & Universal API Protocol Configuration
-                    Rectangle {
+                    GlassCard {
                         Layout.fillWidth: true
-                        implicitHeight: provCol.implicitHeight + 24
-                        radius: 14
-                        color: "#07122a"
-                        border.color: "#1e3a8a"
+                        implicitHeight: provCol.implicitHeight + 28
 
                         ColumnLayout {
                             id: provCol
                             anchors.fill: parent
-                            anchors.margins: 12
-                            spacing: 12
+                            anchors.margins: 14
+                            spacing: 14
 
                             Text {
                                 text: "AI Model Providers & Cloud Endpoints"
@@ -721,7 +737,9 @@ ApplicationWindow {
                             }
 
                             RowLayout {
-                                Text { text: "Active Provider:"; color: "#94a3b8"; Layout.preferredWidth: 170 }
+                                Layout.fillWidth: true
+                                spacing: 12
+                                Text { text: "Active Provider:"; color: "#94a3b8"; Layout.preferredWidth: 160 }
                                 GlassButton {
                                     text: "Local Ollama"
                                     isSecondary: jarvis.selectedProviderId !== "ollama_local"
@@ -737,11 +755,14 @@ ApplicationWindow {
                                     isSecondary: jarvis.selectedProviderId !== "universal_api" && jarvis.selectedProviderId !== "generic_api"
                                     onClicked: jarvis.selectProvider("universal_api")
                                 }
+                                Item { Layout.fillWidth: true }
                             }
 
                             // Remote Ollama Config
                             RowLayout {
-                                Text { text: "Remote Ollama Endpoint:"; color: "#94a3b8"; Layout.preferredWidth: 170 }
+                                Layout.fillWidth: true
+                                spacing: 12
+                                Text { text: "Remote Ollama Endpoint:"; color: "#94a3b8"; Layout.preferredWidth: 160 }
                                 GlassTextField {
                                     id: remoteOllamaUrl
                                     text: "http://remote-gpu:11434"
@@ -756,18 +777,20 @@ ApplicationWindow {
                             // Universal API Configuration Block
                             Rectangle {
                                 Layout.fillWidth: true
-                                implicitHeight: apiSubCol.implicitHeight + 20
-                                radius: 12
+                                implicitHeight: apiSubCol.implicitHeight + 24
+                                radius: 10
                                 color: "#091530"
                                 border.color: "#1e3a8a"
 
                                 ColumnLayout {
                                     id: apiSubCol
                                     anchors.fill: parent
-                                    anchors.margins: 10
-                                    spacing: 8
+                                    anchors.margins: 12
+                                    spacing: 12
 
                                     RowLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 12
                                         Text { text: "API Protocol:"; color: "#38bdf8"; font.bold: true; Layout.preferredWidth: 160 }
                                         GlassComboBox {
                                             id: apiProtoCombo
@@ -777,12 +800,15 @@ ApplicationWindow {
                                                 var idx = model.indexOf(curr);
                                                 return idx >= 0 ? idx : 0;
                                             }
-                                            implicitWidth: 200
+                                            implicitWidth: 220
                                             implicitHeight: 34
                                         }
+                                        Item { Layout.fillWidth: true }
                                     }
 
                                     RowLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 12
                                         Text { text: "API Base Endpoint:"; color: "#94a3b8"; Layout.preferredWidth: 160 }
                                         GlassTextField {
                                             id: universalApiUrl
@@ -796,6 +822,8 @@ ApplicationWindow {
                                     }
 
                                     RowLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 12
                                         Text { text: "API Authentication Key:"; color: "#94a3b8"; Layout.preferredWidth: 160 }
                                         GlassTextField {
                                             id: universalApiKey
@@ -813,7 +841,7 @@ ApplicationWindow {
                         }
                     }
 
-                    Item { Layout.fillHeight: true; height: 20 }
+                    Item { Layout.fillHeight: true; height: 30 }
                 }
             }
         }
