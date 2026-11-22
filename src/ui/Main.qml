@@ -264,17 +264,30 @@ ApplicationWindow {
 
                     delegate: Rectangle {
                         width: chatView.width
-                        implicitHeight: col.implicitHeight + 20
-                        radius: 12
-                        color: model.role === "user" ? "#14254f" : "#0a1738"
+                        implicitHeight: col.implicitHeight + 24
+                        radius: 14
+                        color: model.role === "user" ? "#0c1f44" : "#07132a"
                         border.color: model.role === "user" ? "#1e40af" : "#00f0ff"
-                        border.width: 1
+                        border.width: model.role === "user" ? 1 : 1.5
+
+                        // Subtle upper glass reflection highlight
+                        Rectangle {
+                            anchors.top: parent.top
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            height: parent.height * 0.35
+                            radius: 14
+                            gradient: Gradient {
+                                GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, model.role === "user" ? 0.04 : 0.07) }
+                                GradientStop { position: 1.0; color: "transparent" }
+                            }
+                        }
 
                         ColumnLayout {
                             id: col
                             anchors.fill: parent
-                            anchors.margins: 12
-                            spacing: 6
+                            anchors.margins: 14
+                            spacing: 8
 
                             RowLayout {
                                 Text {
@@ -535,7 +548,7 @@ ApplicationWindow {
 
                             RowLayout {
                                 Text { text: "Ambient Particles:"; color: "#94a3b8"; Layout.preferredWidth: 170 }
-                                CheckBox {
+                                GlassCheckBox {
                                     checked: jarvis.particlesEnabled
                                     onToggled: jarvis.particlesEnabled = checked
                                 }
@@ -596,7 +609,7 @@ ApplicationWindow {
 
                             RowLayout {
                                 Text { text: "Temperature (" + tempSlider.value.toFixed(2) + "):"; color: "#94a3b8"; Layout.preferredWidth: 170 }
-                                Slider {
+                                GlassSlider {
                                     id: tempSlider
                                     Layout.fillWidth: true
                                     from: 0.0
@@ -615,7 +628,7 @@ ApplicationWindow {
 
                             RowLayout {
                                 Text { text: "Max Generation Tokens:"; color: "#94a3b8"; Layout.preferredWidth: 170 }
-                                SpinBox {
+                                GlassSpinBox {
                                     from: 256
                                     to: 16384
                                     stepSize: 256
@@ -627,7 +640,7 @@ ApplicationWindow {
 
                             RowLayout {
                                 Text { text: "Stream Responses:"; color: "#94a3b8"; Layout.preferredWidth: 170 }
-                                CheckBox {
+                                GlassCheckBox {
                                     checked: jarvis.streamEnabled
                                     onToggled: jarvis.streamEnabled = checked
                                 }
@@ -663,7 +676,7 @@ ApplicationWindow {
 
                             RowLayout {
                                 Text { text: "Persistent Context Retrieval:"; color: "#94a3b8"; Layout.preferredWidth: 170 }
-                                CheckBox {
+                                GlassCheckBox {
                                     checked: jarvis.memoryEnabled
                                     onToggled: jarvis.memoryEnabled = checked
                                 }
@@ -676,7 +689,7 @@ ApplicationWindow {
 
                             RowLayout {
                                 Text { text: "Max Injected Memories:"; color: "#94a3b8"; Layout.preferredWidth: 170 }
-                                SpinBox {
+                                GlassSpinBox {
                                     from: 1; to: 10
                                     value: jarvis.maxMemoryRetrievalCount
                                     onValueModified: jarvis.maxMemoryRetrievalCount = value

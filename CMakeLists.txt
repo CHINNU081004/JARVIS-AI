@@ -107,3 +107,4 @@ set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
 set(CPACK_DEBIAN_PACKAGE_DEPENDS "libqt6core6, libqt6gui6, libqt6qml6, libqt6quick6, libqt6network6, libqt6sql6, libqt6sql6-sqlite")
 
 include(CPack)
+

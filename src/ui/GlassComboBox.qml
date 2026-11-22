@@ -17,7 +17,7 @@ T.ComboBox {
     contentItem: Text {
         leftPadding: 14
         rightPadding: control.indicator.width + 14
-        text: control.displayText !== "" ? control.displayText : "Select..."
+        text: control.displayText !== "" ? control.displayText : (control.currentText !== "" ? control.currentText : "Select...")
         font: control.font
         color: control.count > 0 ? control.accentColor : "#64748b"
         verticalAlignment: Text.AlignVCenter
@@ -66,8 +66,8 @@ T.ComboBox {
 
     popup: Popup {
         y: control.height + 4
-        width: Math.max(control.width, 220)
-        implicitHeight: Math.min(contentItem.implicitHeight + 16, 260)
+        width: Math.max(control.width, 240)
+        implicitHeight: Math.min(contentItem.implicitHeight + 16, 280)
         padding: 6
 
         contentItem: ListView {
@@ -99,16 +99,29 @@ T.ComboBox {
     delegate: ItemDelegate {
         id: itemDelegate
         width: control.popup.width - 12
-        height: 36
+        height: 38
 
         contentItem: Text {
-            text: control.textRole ? (Array.isArray(control.model) ? modelData[control.textRole] : model[control.textRole]) : modelData
+            text: {
+                if (control.textRole) {
+                    if (typeof model !== "undefined" && model !== null && model[control.textRole] !== undefined) {
+                        return model[control.textRole];
+                    }
+                    if (typeof modelData !== "undefined" && modelData !== null && modelData[control.textRole] !== undefined) {
+                        return modelData[control.textRole];
+                    }
+                }
+                if (typeof modelData !== "undefined" && modelData !== null) {
+                    return modelData;
+                }
+                return "";
+            }
             color: itemDelegate.highlighted ? control.accentColor : "#f8fafc"
             font.pixelSize: 12
             font.bold: itemDelegate.highlighted
             verticalAlignment: Text.AlignVCenter
             elide: Text.ElideRight
-            leftPadding: 6
+            leftPadding: 8
         }
 
         background: Rectangle {
