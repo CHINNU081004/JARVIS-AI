@@ -161,6 +161,12 @@ bool JarvisController::initialize() {
     m_maxTokens = m_db.getSetting("gen_max_tokens", "4096").toInt();
     m_streamEnabled = m_db.getSetting("gen_stream_enabled", "1") == "1";
     m_accentColor = m_db.getSetting("ui_accent_color", "#00f0ff");
+    m_reasoningEffort = m_db.getSetting("gen_reasoning_effort", "Medium");
+    m_autoApproveReadOnly = m_db.getSetting("dev_auto_approve_readonly", "1") == "1";
+    m_autoFormatCode = m_db.getSetting("dev_auto_format_code", "1") == "1";
+    m_sandboxStrictSymlinks = m_db.getSetting("dev_strict_symlinks", "1") == "1";
+    m_contextTruncateLimit = m_db.getSetting("dev_context_limit", "16384").toInt();
+    if (m_contextTruncateLimit <= 0) m_contextTruncateLimit = 16384;
 
     // 3. Register Providers
     auto* localOllama = new OllamaAdapter("ollama_local", "http://127.0.0.1:11434", this);
@@ -662,6 +668,41 @@ void JarvisController::setAccentColor(const QString& color) {
     m_accentColor = color;
     m_db.saveSetting("ui_accent_color", color);
     emit accentColorChanged();
+}
+
+void JarvisController::setReasoningEffort(const QString& effort) {
+    if (m_reasoningEffort == effort) return;
+    m_reasoningEffort = effort;
+    m_db.saveSetting("gen_reasoning_effort", effort);
+    emit reasoningEffortChanged();
+}
+
+void JarvisController::setAutoApproveReadOnly(bool val) {
+    if (m_autoApproveReadOnly == val) return;
+    m_autoApproveReadOnly = val;
+    m_db.saveSetting("dev_auto_approve_readonly", val ? "1" : "0");
+    emit devSettingsChanged();
+}
+
+void JarvisController::setAutoFormatCode(bool val) {
+    if (m_autoFormatCode == val) return;
+    m_autoFormatCode = val;
+    m_db.saveSetting("dev_auto_format_code", val ? "1" : "0");
+    emit devSettingsChanged();
+}
+
+void JarvisController::setSandboxStrictSymlinks(bool val) {
+    if (m_sandboxStrictSymlinks == val) return;
+    m_sandboxStrictSymlinks = val;
+    m_db.saveSetting("dev_strict_symlinks", val ? "1" : "0");
+    emit devSettingsChanged();
+}
+
+void JarvisController::setContextTruncateLimit(int limit) {
+    if (m_contextTruncateLimit == limit) return;
+    m_contextTruncateLimit = limit;
+    m_db.saveSetting("dev_context_limit", QString::number(limit));
+    emit devSettingsChanged();
 }
 
 } // namespace Jarvis

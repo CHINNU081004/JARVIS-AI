@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Window
+import QtQuick.Dialogs
 
 ApplicationWindow {
     id: window
@@ -12,6 +13,16 @@ ApplicationWindow {
     visible: true
     title: "JARVIS - AI Desktop Assistant"
     color: "#050914"
+
+    // Folder Dialog for GUI-based Workspace Selection
+    FolderDialog {
+        id: folderDialog
+        title: "Select Workspace Folder for JARVIS"
+        currentFolder: jarvis.workspace.currentPath !== "" ? "file://" + jarvis.workspace.currentPath : ""
+        onAccepted: {
+            jarvis.workspace.currentPath = selectedFolder.toString();
+        }
+    }
 
     // Ambient floating particles background (honors animation settings)
     ParticlesField {
@@ -116,7 +127,7 @@ ApplicationWindow {
                 model: jarvis.modelListModel
                 textRole: "displayName"
                 valueRole: "id"
-                implicitWidth: 230
+                implicitWidth: 220
                 implicitHeight: 36
 
                 currentIndex: jarvis.modelListModel.indexOf(jarvis.selectedModelId)
@@ -126,6 +137,21 @@ ApplicationWindow {
                     if (selId !== "") {
                         jarvis.selectModel(selId);
                     }
+                }
+            }
+
+            // Reasoning Effort Selector (Low, Medium, High, Max, Turbo)
+            GlassComboBox {
+                id: effortCombo
+                model: ["Low", "Medium", "High", "Max", "Turbo"]
+                implicitWidth: 110
+                implicitHeight: 36
+                currentIndex: {
+                    var idx = model.indexOf(jarvis.reasoningEffort);
+                    return idx >= 0 ? idx : 1; // default Medium
+                }
+                onActivated: (index) => {
+                    jarvis.reasoningEffort = model[index];
                 }
             }
 
@@ -600,9 +626,15 @@ ApplicationWindow {
                         placeholderText: "Workspace folder path (e.g. /home/chinnu/Desktop/JARVIS)..."
                         leadingIcon: "folder"
                         trailingClearButton: true
+                        onAccepted: jarvis.workspace.currentPath = text
+                    }
+                    GlassButton {
+                        text: "Browse..."
+                        onClicked: folderDialog.open()
                     }
                     GlassButton {
                         text: "Open Folder"
+                        isSecondary: true
                         onClicked: jarvis.workspace.currentPath = wsInput.text
                     }
                 }
@@ -865,6 +897,26 @@ ApplicationWindow {
                             RowLayout {
                                 Layout.fillWidth: true
                                 spacing: 12
+                                Text { text: "Reasoning Effort:"; color: "#94a3b8"; Layout.preferredWidth: 160 }
+                                GlassComboBox {
+                                    model: ["Low", "Medium", "High", "Max", "Turbo"]
+                                    implicitWidth: 160
+                                    implicitHeight: 34
+                                    currentIndex: {
+                                        var idx = model.indexOf(jarvis.reasoningEffort);
+                                        return idx >= 0 ? idx : 1;
+                                    }
+                                    onActivated: (index) => {
+                                        jarvis.reasoningEffort = model[index];
+                                    }
+                                }
+                                Text { text: "Controls model thinking depth and step budget"; color: "#64748b"; font.pixelSize: 11 }
+                                Item { Layout.fillWidth: true }
+                            }
+
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: 12
                                 Text { text: "Temperature (" + tempSlider.value.toFixed(2) + "):"; color: "#94a3b8"; Layout.preferredWidth: 160 }
                                 GlassSlider {
                                     id: tempSlider
@@ -1085,6 +1137,77 @@ ApplicationWindow {
                                         }
                                     }
                                 }
+                            }
+                        }
+                    }
+
+                    // 5. Codex & Antigravity Developer Settings Card
+                    GlassCard {
+                        Layout.fillWidth: true
+                        implicitHeight: devCol.implicitHeight + 28
+
+                        ColumnLayout {
+                            id: devCol
+                            anchors.fill: parent
+                            anchors.margins: 14
+                            spacing: 12
+
+                            Text {
+                                text: "Developer, Codex & Antigravity IDE Settings"
+                                color: "#00f0ff"
+                                font.bold: true
+                                font.pixelSize: 13
+                            }
+
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: 12
+                                Text { text: "Auto-Approve Read Tools:"; color: "#94a3b8"; Layout.preferredWidth: 200 }
+                                GlassCheckBox {
+                                    checked: jarvis.autoApproveReadOnly
+                                    onToggled: jarvis.autoApproveReadOnly = checked
+                                }
+                                Text { text: "Allow harmless file reads and searches without prompting"; color: "#64748b"; font.pixelSize: 11 }
+                                Item { Layout.fillWidth: true }
+                            }
+
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: 12
+                                Text { text: "Strict Symlink Sandbox:"; color: "#94a3b8"; Layout.preferredWidth: 200 }
+                                GlassCheckBox {
+                                    checked: jarvis.sandboxStrictSymlinks
+                                    onToggled: jarvis.sandboxStrictSymlinks = checked
+                                }
+                                Text { text: "Block symlinks pointing outside active workspace root"; color: "#64748b"; font.pixelSize: 11 }
+                                Item { Layout.fillWidth: true }
+                            }
+
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: 12
+                                Text { text: "Auto-Format Source Code:"; color: "#94a3b8"; Layout.preferredWidth: 200 }
+                                GlassCheckBox {
+                                    checked: jarvis.autoFormatCode
+                                    onToggled: jarvis.autoFormatCode = checked
+                                }
+                                Text { text: "Validate indentation and syntax on tool edits"; color: "#64748b"; font.pixelSize: 11 }
+                                Item { Layout.fillWidth: true }
+                            }
+
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: 12
+                                Text { text: "Context Window Bound:"; color: "#94a3b8"; Layout.preferredWidth: 200 }
+                                GlassSpinBox {
+                                    from: 4096
+                                    to: 131072
+                                    stepSize: 4096
+                                    value: jarvis.contextTruncateLimit
+                                    onValueModified: jarvis.contextTruncateLimit = value
+                                }
+                                Text { text: "tokens max history per turn"; color: "#64748b"; font.pixelSize: 11 }
+                                Item { Layout.fillWidth: true }
                             }
                         }
                     }

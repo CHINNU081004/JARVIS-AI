@@ -93,7 +93,14 @@ class JarvisController : public QObject {
     Q_PROPERTY(double temperature READ temperature WRITE setTemperature NOTIFY generationSettingsChanged)
     Q_PROPERTY(int maxTokens READ maxTokens WRITE setMaxTokens NOTIFY generationSettingsChanged)
     Q_PROPERTY(bool streamEnabled READ streamEnabled WRITE setStreamEnabled NOTIFY generationSettingsChanged)
+    Q_PROPERTY(QString reasoningEffort READ reasoningEffort WRITE setReasoningEffort NOTIFY reasoningEffortChanged)
     Q_PROPERTY(QString accentColor READ accentColor WRITE setAccentColor NOTIFY accentColorChanged)
+
+    // Developer / Codex / Antigravity Environment Settings
+    Q_PROPERTY(bool autoApproveReadOnly READ autoApproveReadOnly WRITE setAutoApproveReadOnly NOTIFY devSettingsChanged)
+    Q_PROPERTY(bool autoFormatCode READ autoFormatCode WRITE setAutoFormatCode NOTIFY devSettingsChanged)
+    Q_PROPERTY(bool sandboxStrictSymlinks READ sandboxStrictSymlinks WRITE setSandboxStrictSymlinks NOTIFY devSettingsChanged)
+    Q_PROPERTY(int contextTruncateLimit READ contextTruncateLimit WRITE setContextTruncateLimit NOTIFY devSettingsChanged)
 
     Q_PROPERTY(ChatMessageModel* chatModel READ chatModel CONSTANT)
     Q_PROPERTY(ActivityModel* activityModel READ activityModel CONSTANT)
@@ -144,6 +151,21 @@ public:
     QString accentColor() const { return m_accentColor; }
     void setAccentColor(const QString& color);
 
+    QString reasoningEffort() const { return m_reasoningEffort; }
+    void setReasoningEffort(const QString& effort);
+
+    bool autoApproveReadOnly() const { return m_autoApproveReadOnly; }
+    void setAutoApproveReadOnly(bool val);
+
+    bool autoFormatCode() const { return m_autoFormatCode; }
+    void setAutoFormatCode(bool val);
+
+    bool sandboxStrictSymlinks() const { return m_sandboxStrictSymlinks; }
+    void setSandboxStrictSymlinks(bool val);
+
+    int contextTruncateLimit() const { return m_contextTruncateLimit; }
+    void setContextTruncateLimit(int limit);
+
     ChatMessageModel* chatModel() { return &m_chatModel; }
     ActivityModel* activityModel() { return &m_activityModel; }
     ModelListModel* modelListModel() { return &m_modelListModel; }
@@ -189,6 +211,8 @@ signals:
     void animationIntensityChanged();
     void memorySettingsChanged();
     void generationSettingsChanged();
+    void reasoningEffortChanged();
+    void devSettingsChanged();
     void accentColorChanged();
     void modelsListChanged();
     void errorNotice(const QString& title, const QString& message);
@@ -233,6 +257,11 @@ private:
     int m_maxTokens = 4096;
     bool m_streamEnabled = true;
     QString m_accentColor = "#00f0ff";
+    QString m_reasoningEffort = "Medium";
+    bool m_autoApproveReadOnly = true;
+    bool m_autoFormatCode = true;
+    bool m_sandboxStrictSymlinks = true;
+    int m_contextTruncateLimit = 16384;
 };
 
 } // namespace Jarvis

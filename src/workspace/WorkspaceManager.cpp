@@ -1,4 +1,5 @@
 #include "WorkspaceManager.h"
+#include <QUrl>
 #include <QDir>
 #include <QDirIterator>
 #include <QFile>
@@ -15,7 +16,14 @@ WorkspaceManager::WorkspaceManager(QObject* parent)
 }
 
 void WorkspaceManager::setCurrentPath(const QString& path) {
-    QFileInfo info(path);
+    QString clean = path;
+    if (clean.startsWith("file://")) {
+        clean = QUrl(clean).toLocalFile();
+    }
+    if (clean.startsWith('~')) {
+        clean = QDir::homePath() + clean.mid(1);
+    }
+    QFileInfo info(clean);
     if (info.exists() && info.isDir()) {
         m_currentPath = info.canonicalFilePath();
         emit currentPathChanged();

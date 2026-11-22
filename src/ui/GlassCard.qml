@@ -8,17 +8,18 @@ Rectangle {
     border.width: 1
     opacity: 0.95
 
-    property color glowColor: "#00f0ff"
+    property color glowColor: (typeof jarvis !== "undefined" && jarvis.accentColor) ? jarvis.accentColor : "#00f0ff"
     property bool hoverGlow: false
 
-    // Subtle static glass edge highlight
+    // Dynamic accent glow layer
     Rectangle {
         anchors.fill: parent
         radius: root.radius
         color: "transparent"
         border.color: root.glowColor
         border.width: 1
-        opacity: 0.15
+        opacity: 0.22
+        Behavior on border.color { ColorAnimation { duration: 200 } }
     }
 
     // Top subtle static reflection sheen
