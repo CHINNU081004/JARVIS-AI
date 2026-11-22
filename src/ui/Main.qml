@@ -164,14 +164,16 @@ ApplicationWindow {
                         { name: "Settings", icon: "settings" }
                     ]
                     delegate: Rectangle {
+                        id: navItem
                         Layout.fillWidth: true
                         height: 42
                         radius: 12
-                        color: activeTab === modelData.name ? "#1e3a8a" : "transparent"
-                        border.color: activeTab === modelData.name ? "#00f0ff" : "transparent"
+                        color: activeTab === modelData.name ? "#1e3a8a" : (navMouse.containsMouse ? "#10234c" : "transparent")
+                        border.color: activeTab === modelData.name ? "#00f0ff" : (navMouse.containsMouse ? "#0088ff" : "transparent")
                         border.width: 1
 
                         Behavior on color { ColorAnimation { duration: 150 } }
+                        Behavior on border.color { ColorAnimation { duration: 150 } }
 
                         RowLayout {
                             anchors.fill: parent
@@ -180,20 +182,26 @@ ApplicationWindow {
 
                             VectorIcon {
                                 name: modelData.icon
-                                color: activeTab === modelData.name ? "#00f0ff" : "#94a3b8"
+                                color: (activeTab === modelData.name || navMouse.containsMouse) ? "#00f0ff" : "#94a3b8"
                                 width: 18; height: 18
+                                scale: navMouse.containsMouse ? 1.15 : 1.0
+                                Behavior on scale { NumberAnimation { duration: 120 } }
+                                Behavior on color { ColorAnimation { duration: 150 } }
                             }
 
                             Text {
                                 text: modelData.name
-                                color: activeTab === modelData.name ? "#00f0ff" : "#94a3b8"
+                                color: (activeTab === modelData.name || navMouse.containsMouse) ? "#00f0ff" : "#94a3b8"
                                 font.pixelSize: 13
-                                font.bold: activeTab === modelData.name
+                                font.bold: activeTab === modelData.name || navMouse.containsMouse
+                                Behavior on color { ColorAnimation { duration: 150 } }
                             }
                         }
 
                         MouseArea {
+                            id: navMouse
                             anchors.fill: parent
+                            hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             onClicked: activeTab = modelData.name
                         }
@@ -263,12 +271,16 @@ ApplicationWindow {
                     spacing: 10
 
                     delegate: Rectangle {
+                        id: chatMsgCard
                         width: chatView.width
                         implicitHeight: col.implicitHeight + 24
                         radius: 14
-                        color: model.role === "user" ? "#0c1f44" : "#07132a"
-                        border.color: model.role === "user" ? "#1e40af" : "#00f0ff"
-                        border.width: model.role === "user" ? 1 : 1.5
+                        color: model.role === "user" ? (chatMouse.containsMouse ? "#112652" : "#0c1f44") : (chatMouse.containsMouse ? "#0a1c3e" : "#07132a")
+                        border.color: model.role === "user" ? (chatMouse.containsMouse ? "#3b82f6" : "#1e40af") : (chatMouse.containsMouse ? "#38bdf8" : "#00f0ff")
+                        border.width: chatMouse.containsMouse ? 2 : (model.role === "user" ? 1 : 1.5)
+
+                        Behavior on color { ColorAnimation { duration: 150 } }
+                        Behavior on border.color { ColorAnimation { duration: 150 } }
 
                         // Subtle upper glass reflection highlight
                         Rectangle {
@@ -278,9 +290,17 @@ ApplicationWindow {
                             height: parent.height * 0.35
                             radius: 14
                             gradient: Gradient {
-                                GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, model.role === "user" ? 0.04 : 0.07) }
+                                GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, chatMouse.containsMouse ? 0.12 : (model.role === "user" ? 0.04 : 0.07)) }
                                 GradientStop { position: 1.0; color: "transparent" }
                             }
+                        }
+
+                        MouseArea {
+                            id: chatMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            acceptedButtons: Qt.NoButton
+                            propagateComposedEvents: true
                         }
 
                         ColumnLayout {
@@ -397,20 +417,28 @@ ApplicationWindow {
                         width: fileListView.width
                         height: 38
                         radius: 8
-                        color: "#0f2048"
-                        border.color: "#1e3a8a"
+                        color: fileMouse.containsMouse ? "#152c5c" : "#0f2048"
+                        border.color: fileMouse.containsMouse ? "#00f0ff" : "#1e3a8a"
+                        border.width: fileMouse.containsMouse ? 1.5 : 1
+
+                        Behavior on color { ColorAnimation { duration: 150 } }
+                        Behavior on border.color { ColorAnimation { duration: 150 } }
+
                         RowLayout {
                             anchors.fill: parent
                             anchors.margins: 10
                             VectorIcon {
                                 name: modelData.isDirectory ? "folder" : "chat"
-                                color: "#00f0ff"
+                                color: fileMouse.containsMouse ? "#00f0ff" : "#38bdf8"
                                 width: 14; height: 14
+                                scale: fileMouse.containsMouse ? 1.15 : 1.0
+                                Behavior on scale { NumberAnimation { duration: 120 } }
                             }
                             Text {
                                 text: modelData.name
-                                color: "#f8fafc"
+                                color: fileMouse.containsMouse ? "#ffffff" : "#f8fafc"
                                 font.pixelSize: 12
+                                font.bold: fileMouse.containsMouse
                             }
                             Item { Layout.fillWidth: true }
                             Text {
@@ -418,6 +446,13 @@ ApplicationWindow {
                                 color: "#64748b"
                                 font.pixelSize: 11
                             }
+                        }
+
+                        MouseArea {
+                            id: fileMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
                         }
                     }
                 }
@@ -456,21 +491,26 @@ ApplicationWindow {
                         width: memListView.width
                         height: 52
                         radius: 8
-                        color: "#0e1f44"
-                        border.color: "#1d3875"
+                        color: memMouse.containsMouse ? "#142c5c" : "#0e1f44"
+                        border.color: memMouse.containsMouse ? "#00f0ff" : "#1d3875"
+                        border.width: memMouse.containsMouse ? 1.5 : 1
+
+                        Behavior on color { ColorAnimation { duration: 150 } }
+                        Behavior on border.color { ColorAnimation { duration: 150 } }
+
                         RowLayout {
                             anchors.fill: parent
                             anchors.margins: 8
                             ColumnLayout {
                                 Text {
                                     text: "[" + modelData.category + "] " + modelData.key
-                                    color: "#38bdf8"
+                                    color: memMouse.containsMouse ? "#00f0ff" : "#38bdf8"
                                     font.bold: true
                                     font.pixelSize: 12
                                 }
                                 Text {
                                     text: modelData.content
-                                    color: "#cbd5e1"
+                                    color: memMouse.containsMouse ? "#ffffff" : "#cbd5e1"
                                     font.pixelSize: 11
                                 }
                             }
@@ -483,6 +523,14 @@ ApplicationWindow {
                                     memListView.model = jarvis.getAllMemories();
                                 }
                             }
+                        }
+
+                        MouseArea {
+                            id: memMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            acceptedButtons: Qt.NoButton
+                            propagateComposedEvents: true
                         }
                     }
                 }
@@ -944,8 +992,12 @@ ApplicationWindow {
                         width: actListView.width
                         implicitHeight: actCol.implicitHeight + 12
                         radius: 8
-                        color: "#0c1a3b"
-                        border.color: model.level === "ERROR" ? "#ef4444" : "#1e3a8a"
+                        color: actMouse.containsMouse ? "#142854" : "#0c1a3b"
+                        border.color: model.level === "ERROR" ? "#ef4444" : (actMouse.containsMouse ? "#00f0ff" : "#1e3a8a")
+                        border.width: actMouse.containsMouse ? 1.5 : 1
+
+                        Behavior on color { ColorAnimation { duration: 150 } }
+                        Behavior on border.color { ColorAnimation { duration: 150 } }
 
                         ColumnLayout {
                             id: actCol
@@ -955,24 +1007,32 @@ ApplicationWindow {
                             RowLayout {
                                 Text {
                                     text: model.title
-                                    color: model.level === "ERROR" ? "#ef4444" : "#38bdf8"
+                                    color: model.level === "ERROR" ? "#ef4444" : (actMouse.containsMouse ? "#00f0ff" : "#38bdf8")
                                     font.bold: true
                                     font.pixelSize: 11
                                 }
                                 Item { Layout.fillWidth: true }
                                 Text {
                                     text: model.timestamp
-                                    color: "#64748b"
+                                    color: actMouse.containsMouse ? "#94a3b8" : "#64748b"
                                     font.pixelSize: 9
                                 }
                             }
                             Text {
                                 text: model.detail
-                                color: "#94a3b8"
+                                color: actMouse.containsMouse ? "#e2e8f0" : "#94a3b8"
                                 font.pixelSize: 10
                                 wrapMode: Text.Wrap
                                 Layout.fillWidth: true
                             }
+                        }
+
+                        MouseArea {
+                            id: actMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            acceptedButtons: Qt.NoButton
+                            propagateComposedEvents: true
                         }
                     }
                 }
