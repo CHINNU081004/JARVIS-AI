@@ -253,7 +253,9 @@ void OllamaAdapter::onStreamFinished() {
 void OllamaAdapter::cancelActiveRequest() {
     if (m_currentReply) {
         m_wasCancelled = true;
+        disconnect(m_currentReply, nullptr, this, nullptr);
         m_currentReply->abort();
+        m_currentReply->deleteLater();
         m_currentReply = nullptr;
     }
 }

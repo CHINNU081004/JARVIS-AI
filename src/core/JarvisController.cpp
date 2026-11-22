@@ -562,15 +562,20 @@ void JarvisController::onGenerationFinished(const ChatMessage& message) {
     emit isGeneratingChanged();
     emit activeTaskChanged();
 
-    m_db.saveMessage(message);
-    m_chatModel.updateLastAssistantComplete(message);
+    ChatMessage finalMsg = message;
+    if (finalMsg.conversationId.isEmpty()) {
+        finalMsg.conversationId = m_currentConversationId;
+    }
 
-    m_metrics.recordGenerationMetrics(message.promptTokens, message.completionTokens,
-                                      message.durationMs, message.tokensPerSec, message.isExactMetrics);
+    m_db.saveMessage(finalMsg);
+    m_chatModel.updateLastAssistantComplete(finalMsg);
+
+    m_metrics.recordGenerationMetrics(finalMsg.promptTokens, finalMsg.completionTokens,
+                                      finalMsg.durationMs, finalMsg.tokensPerSec, finalMsg.isExactMetrics);
 
     logEvent("INFO", "Generation Finished",
              QString("Generated %1 tokens in %2 ms (%3 tok/s)")
-             .arg(message.completionTokens).arg(message.durationMs).arg(QString::number(message.tokensPerSec, 'f', 1)),
+             .arg(finalMsg.completionTokens).arg(finalMsg.durationMs).arg(QString::number(finalMsg.tokensPerSec, 'f', 1)),
              "Chat");
 }
 
@@ -582,6 +587,7 @@ void JarvisController::onGenerationCancelled() {
     emit activeTaskChanged();
 
     ChatMessage cancMsg;
+    cancMsg.conversationId = m_currentConversationId;
     cancMsg.role = "assistant";
     cancMsg.content = "[Generation cancelled by user]";
     cancMsg.isCancelled = true;
