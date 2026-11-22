@@ -30,14 +30,25 @@ public:
     Q_INVOKABLE QString readFileContent(const QString& relativePath, qint64 maxBytes = 100000);
     Q_INVOKABLE QList<QVariantMap> searchText(const QString& query, int maxResults = 50);
 
+    // Phase 2.1 File Operations, Diffs, Backups & Recovery
+    bool createFile(const QString& relativePath, const QString& content, QString* errorOut = nullptr);
+    bool editFile(const QString& relativePath, const QString& newContent, QString* diffOut = nullptr, QString* backupIdOut = nullptr, QString* errorOut = nullptr);
+    bool moveFile(const QString& oldRelativePath, const QString& newRelativePath, QString* errorOut = nullptr);
+    bool deleteFile(const QString& relativePath, QString* backupIdOut = nullptr, QString* errorOut = nullptr);
+    bool undoFileAction(const QString& backupId, QString* errorOut = nullptr);
+    QString generateDiff(const QString& relativePath, const QString& newContent) const;
+    QString computeFileHash(const QString& relativePath) const;
+
     bool isPathSafe(const QString& relativePath, QString* canonicalOut = nullptr) const;
 
 signals:
     void currentPathChanged();
     void isValidChanged();
     void accessDenied(const QString& attemptedPath, const QString& reason);
+    void fileModified(const QString& relativePath, const QString& action);
 
 private:
+    QString backupDir() const;
     QString m_currentPath;
 };
 

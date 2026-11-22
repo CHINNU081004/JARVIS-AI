@@ -40,10 +40,16 @@ set(JARVIS_CORE_SOURCES
     src/storage/DatabaseManager.cpp
     src/workspace/WorkspaceManager.h
     src/workspace/WorkspaceManager.cpp
+    src/agent/ITool.h
+    src/agent/WorkspaceTools.h
+    src/agent/ToolRegistry.h
+    src/agent/ToolRegistry.cpp
+    src/agent/AgentEngine.h
+    src/agent/AgentEngine.cpp
 )
 
 add_library(jarvis_core STATIC ${JARVIS_CORE_SOURCES})
-target_include_directories(jarvis_core PUBLIC src src/core src/providers src/storage src/workspace)
+target_include_directories(jarvis_core PUBLIC src src/core src/providers src/storage src/workspace src/agent)
 target_link_libraries(jarvis_core PUBLIC
     Qt6::Core
     Qt6::Gui
@@ -78,6 +84,15 @@ target_link_libraries(test_jarvis PRIVATE
     Qt6::Test
 )
 add_test(NAME TestJarvisPhase1 COMMAND test_jarvis)
+
+add_executable(test_agent_phase2
+    tests/TestAgentPhase2_1.cpp
+)
+target_link_libraries(test_agent_phase2 PRIVATE
+    jarvis_core
+    Qt6::Test
+)
+add_test(NAME TestAgentPhase2 COMMAND test_agent_phase2)
 
 # Installation specification for packaging
 include(GNUInstallDirs)

@@ -92,4 +92,66 @@ struct MemoryItem {
     double relevanceScore = 0.0;
 };
 
+// --- Phase 2.1 Agent & Tool Subsystem Types ---
+
+enum class AgentTaskStatus {
+    Idle,
+    Planning,
+    AwaitingApproval,
+    ExecutingTool,
+    Completed,
+    Failed,
+    Cancelled
+};
+
+enum class ToolPermission {
+    ReadOnly,
+    RequiresApproval,
+    DestructiveConfirm
+};
+
+struct ToolExecutionRequest {
+    QString id;
+    QString toolName;
+    QJsonObject arguments;
+    QString reason;
+    QString diffPreview;
+    ToolPermission permission = ToolPermission::ReadOnly;
+    QDateTime requestedAt;
+};
+
+struct ToolExecutionResult {
+    bool success = false;
+    QString output;
+    QString errorMessage;
+    QStringList modifiedFiles;
+    QStringList backupIds;
+};
+
+struct AgentTaskStep {
+    int index = 0;
+    QString description;
+    QString thoughts;
+    QString toolName;
+    QJsonObject toolArguments;
+    ToolExecutionResult toolResult;
+    QString approvalStatus; // "Approved", "Rejected", "AutoApproved"
+    QDateTime timestamp;
+};
+
+struct AgentTask {
+    QString id;
+    QString goal;
+    AgentTaskStatus status = AgentTaskStatus::Idle;
+    int currentStep = 0;
+    int maxSteps = 10;
+    QDateTime createdAt;
+    QDateTime finishedAt;
+    QString errorMessage;
+    QString summary;
+    QStringList filesRead;
+    QStringList filesChanged;
+    QList<AgentTaskStep> steps;
+};
+
 } // namespace Jarvis

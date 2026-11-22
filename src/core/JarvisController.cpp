@@ -134,6 +134,7 @@ void ActivityModel::setActivities(const QList<ActivityEvent>& list) {
 
 JarvisController::JarvisController(QObject* parent)
     : QObject(parent)
+    , m_agent(&m_toolRegistry, &m_db, this)
 {
 }
 
@@ -196,7 +197,23 @@ bool JarvisController::initialize() {
     testActiveProvider();
     refreshModels();
 
-    // 6. Ensure default conversation exists
+    // 6. Register Phase 2.1 Workspace Tools
+    m_toolRegistry.registerTool(std::make_shared<ListWorkspaceFilesTool>(&m_workspace));
+    m_toolRegistry.registerTool(std::make_shared<ReadWorkspaceFileTool>(&m_workspace));
+    m_toolRegistry.registerTool(std::make_shared<SearchWorkspaceFilesTool>(&m_workspace));
+    m_toolRegistry.registerTool(std::make_shared<CreateFileTool>(&m_workspace));
+    m_toolRegistry.registerTool(std::make_shared<EditFileTool>(&m_workspace));
+    m_toolRegistry.registerTool(std::make_shared<DeleteFileTool>(&m_workspace));
+
+    // Connect Agent Engine signals to Activity timeline
+    connect(&m_agent, &AgentEngine::stepCompleted, this, [this](int step, const QString& tool, const QString& res) {
+        logEvent("STEP", QString("Agent Step %1: %2").arg(step).arg(tool), res.left(120), "Agent");
+    });
+    connect(&m_agent, &AgentEngine::taskFinished, this, [this](bool success, const QString& summary) {
+        logEvent(success ? "INFO" : "WARN", success ? "Agent Task Completed" : "Agent Task Ended", summary, "Agent");
+    });
+
+    // 7. Ensure default conversation exists
     auto convs = m_db.getConversations();
     if (convs.isEmpty()) {
         createNewConversation("Initial Session");
@@ -455,6 +472,28 @@ void JarvisController::cancelGeneration() {
         prov->cancelActiveRequest();
         logEvent("WARN", "Request Cancelled", "User aborted generation.", "Chat");
     }
+}
+
+void JarvisController::startAgentTask(const QString& goal) {
+    if (goal.trimmed().isEmpty()) return;
+
+    QString routingReason;
+    QString targetModel = m_router.resolveModel(m_selectedModelId, goal, m_allModels, &routingReason);
+    auto* prov = currentProvider();
+
+    QString memoryContext;
+    if (m_memoryEnabled) {
+        auto mems = m_db.getRelevantMemories(goal, m_maxMemoryRetrievalCount);
+        if (!mems.isEmpty()) {
+            memoryContext = "[User Preferences & Memories]:\n";
+            for (const auto& m : mems) {
+                memoryContext += QString("- %1: %2\n").arg(m.key, m.content);
+            }
+        }
+    }
+
+    logEvent("INFO", "Agent Task Initiated", QString("Goal: %1 (Model: %2)").arg(goal, targetModel), "Agent");
+    m_agent.startTask(goal, prov, targetModel, memoryContext);
 }
 
 void JarvisController::onConnectionTested(bool success, qint64 latencyMs, const QString& error) {

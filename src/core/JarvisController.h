@@ -9,6 +9,9 @@
 #include "core/RoutingEngine.h"
 
 #include "core/ModelListModel.h"
+#include "agent/ToolRegistry.h"
+#include "agent/WorkspaceTools.h"
+#include "agent/AgentEngine.h"
 #include <QObject>
 #include <QAbstractListModel>
 #include <QList>
@@ -98,6 +101,7 @@ class JarvisController : public QObject {
     Q_PROPERTY(WorkspaceManager* workspace READ workspace CONSTANT)
     Q_PROPERTY(MetricsCollector* metrics READ metrics CONSTANT)
     Q_PROPERTY(RoutingEngine* router READ router CONSTANT)
+    Q_PROPERTY(AgentEngine* agent READ agent CONSTANT)
 
 public:
     explicit JarvisController(QObject* parent = nullptr);
@@ -146,6 +150,7 @@ public:
     WorkspaceManager* workspace() { return &m_workspace; }
     MetricsCollector* metrics() { return &m_metrics; }
     RoutingEngine* router() { return &m_router; }
+    AgentEngine* agent() { return &m_agent; }
 
     Q_INVOKABLE QVariantList getDiscoveredModels();
     Q_INVOKABLE QVariantList getConversations();
@@ -162,6 +167,9 @@ public:
 
     Q_INVOKABLE void sendMessage(const QString& text);
     Q_INVOKABLE void cancelGeneration();
+
+    // Agent Task Execution
+    Q_INVOKABLE void startAgentTask(const QString& goal);
 
     // Memory APIs
     Q_INVOKABLE QVariantList getAllMemories();
@@ -203,6 +211,8 @@ private:
     MetricsCollector m_metrics;
     RoutingEngine m_router;
     DatabaseManager m_db;
+    ToolRegistry m_toolRegistry;
+    AgentEngine m_agent;
 
     QMap<QString, IProvider*> m_providers;
     QList<ModelInfo> m_allModels;

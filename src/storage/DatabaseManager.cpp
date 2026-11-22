@@ -89,6 +89,47 @@ bool DatabaseManager::initialize() {
            "value TEXT"
            ")");
 
+    // Phase 2.1 Agent Task Tables
+    q.exec("CREATE TABLE IF NOT EXISTS agent_tasks ("
+           "id TEXT PRIMARY KEY, "
+           "goal TEXT, "
+           "status TEXT, "
+           "current_step INTEGER, "
+           "max_steps INTEGER, "
+           "created_at DATETIME, "
+           "finished_at DATETIME, "
+           "error_message TEXT, "
+           "summary TEXT"
+           ")");
+
+    q.exec("CREATE TABLE IF NOT EXISTS agent_task_steps ("
+           "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+           "task_id TEXT, "
+           "step_index INTEGER, "
+           "description TEXT, "
+           "thoughts TEXT, "
+           "tool_name TEXT, "
+           "tool_arguments TEXT, "
+           "tool_output TEXT, "
+           "tool_error TEXT, "
+           "approval_status TEXT, "
+           "timestamp DATETIME, "
+           "FOREIGN KEY(task_id) REFERENCES agent_tasks(id)"
+           ")");
+
+    q.exec("CREATE TABLE IF NOT EXISTS agent_file_audits ("
+           "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+           "task_id TEXT, "
+           "file_path TEXT, "
+           "action TEXT, "
+           "backup_path TEXT, "
+           "timestamp DATETIME, "
+           "FOREIGN KEY(task_id) REFERENCES agent_tasks(id)"
+           ")");
+
+    // Clean up any previously interrupted running tasks on restart per Phase 2.1 Rule 6
+    q.exec("UPDATE agent_tasks SET status = 'Interrupted' WHERE status IN ('Planning', 'ExecutingTool', 'AwaitingApproval')");
+
     return true;
 }
 
@@ -364,6 +405,138 @@ QString DatabaseManager::getSetting(const QString& key, const QString& defaultVa
         return q.value(0).toString();
     }
     return defaultValue;
+}
+
+static QString taskStatusToString(AgentTaskStatus status) {
+    switch (status) {
+        case AgentTaskStatus::Idle: return "Idle";
+        case AgentTaskStatus::Planning: return "Planning";
+        case AgentTaskStatus::AwaitingApproval: return "AwaitingApproval";
+        case AgentTaskStatus::ExecutingTool: return "ExecutingTool";
+        case AgentTaskStatus::Completed: return "Completed";
+        case AgentTaskStatus::Failed: return "Failed";
+        case AgentTaskStatus::Cancelled: return "Cancelled";
+        default: return "Unknown";
+    }
+}
+
+static AgentTaskStatus taskStatusFromString(const QString& str) {
+    if (str == "Planning") return AgentTaskStatus::Planning;
+    if (str == "AwaitingApproval") return AgentTaskStatus::AwaitingApproval;
+    if (str == "ExecutingTool") return AgentTaskStatus::ExecutingTool;
+    if (str == "Completed") return AgentTaskStatus::Completed;
+    if (str == "Failed") return AgentTaskStatus::Failed;
+    if (str == "Cancelled") return AgentTaskStatus::Cancelled;
+    return AgentTaskStatus::Idle;
+}
+
+bool DatabaseManager::saveTask(const AgentTask& task) {
+    QMutexLocker locker(&m_mutex);
+    QSqlQuery q(m_db);
+    q.prepare("INSERT OR REPLACE INTO agent_tasks (id, goal, status, current_step, max_steps, created_at, finished_at, error_message, summary) "
+              "VALUES (:id, :goal, :status, :step, :max_steps, :created_at, :finished_at, :err, :summary)");
+    q.bindValue(":id", task.id);
+    q.bindValue(":goal", task.goal);
+    q.bindValue(":status", taskStatusToString(task.status));
+    q.bindValue(":step", task.currentStep);
+    q.bindValue(":max_steps", task.maxSteps);
+    q.bindValue(":created_at", task.createdAt);
+    q.bindValue(":finished_at", task.finishedAt);
+    q.bindValue(":err", task.errorMessage);
+    q.bindValue(":summary", task.summary);
+    return q.exec();
+}
+
+bool DatabaseManager::updateTaskStatus(const QString& taskId, AgentTaskStatus status, const QString& errorMsg, const QString& summary) {
+    QMutexLocker locker(&m_mutex);
+    QSqlQuery q(m_db);
+    q.prepare("UPDATE agent_tasks SET status = :status, error_message = :err, summary = :summary, "
+              "finished_at = CASE WHEN :is_finished = 1 THEN :now ELSE finished_at END WHERE id = :id");
+    q.bindValue(":status", taskStatusToString(status));
+    q.bindValue(":err", errorMsg);
+    q.bindValue(":summary", summary);
+    bool isFinished = (status == AgentTaskStatus::Completed || status == AgentTaskStatus::Failed || status == AgentTaskStatus::Cancelled);
+    q.bindValue(":is_finished", isFinished ? 1 : 0);
+    q.bindValue(":now", QDateTime::currentDateTime());
+    q.bindValue(":id", taskId);
+    return q.exec();
+}
+
+bool DatabaseManager::recordTaskStep(const QString& taskId, const AgentTaskStep& step) {
+    QMutexLocker locker(&m_mutex);
+    QSqlQuery q(m_db);
+    q.prepare("INSERT INTO agent_task_steps (task_id, step_index, description, thoughts, tool_name, tool_arguments, tool_output, tool_error, approval_status, timestamp) "
+              "VALUES (:tid, :idx, :desc, :th, :tool, :args, :out, :err, :app, :ts)");
+    q.bindValue(":tid", taskId);
+    q.bindValue(":idx", step.index);
+    q.bindValue(":desc", step.description);
+    q.bindValue(":th", step.thoughts);
+    q.bindValue(":tool", step.toolName);
+    q.bindValue(":args", QString::fromUtf8(QJsonDocument(step.toolArguments).toJson(QJsonDocument::Compact)));
+    q.bindValue(":out", step.toolResult.output);
+    q.bindValue(":err", step.toolResult.errorMessage);
+    q.bindValue(":app", step.approvalStatus);
+    q.bindValue(":ts", step.timestamp);
+    return q.exec();
+}
+
+bool DatabaseManager::recordFileAudit(const QString& taskId, const QString& filePath, const QString& action, const QString& backupPath) {
+    QMutexLocker locker(&m_mutex);
+    QSqlQuery q(m_db);
+    q.prepare("INSERT INTO agent_file_audits (task_id, file_path, action, backup_path, timestamp) "
+              "VALUES (:tid, :path, :action, :backup, :ts)");
+    q.bindValue(":tid", taskId);
+    q.bindValue(":path", filePath);
+    q.bindValue(":action", action);
+    q.bindValue(":backup", backupPath);
+    q.bindValue(":ts", QDateTime::currentDateTime());
+    return q.exec();
+}
+
+QList<AgentTask> DatabaseManager::getRecentTasks(int limit) {
+    QMutexLocker locker(&m_mutex);
+    QList<AgentTask> tasks;
+    QSqlQuery q(m_db);
+    q.prepare("SELECT id, goal, status, current_step, max_steps, created_at, finished_at, error_message, summary "
+              "FROM agent_tasks ORDER BY created_at DESC LIMIT :lim");
+    q.bindValue(":lim", limit);
+    if (q.exec()) {
+        while (q.next()) {
+            AgentTask t;
+            t.id = q.value(0).toString();
+            t.goal = q.value(1).toString();
+            t.status = taskStatusFromString(q.value(2).toString());
+            t.currentStep = q.value(3).toInt();
+            t.maxSteps = q.value(4).toInt();
+            t.createdAt = q.value(5).toDateTime();
+            t.finishedAt = q.value(6).toDateTime();
+            t.errorMessage = q.value(7).toString();
+            t.summary = q.value(8).toString();
+            tasks.append(t);
+        }
+    }
+    return tasks;
+}
+
+AgentTask DatabaseManager::getTask(const QString& taskId) {
+    QMutexLocker locker(&m_mutex);
+    AgentTask t;
+    QSqlQuery q(m_db);
+    q.prepare("SELECT id, goal, status, current_step, max_steps, created_at, finished_at, error_message, summary "
+              "FROM agent_tasks WHERE id = :id");
+    q.bindValue(":id", taskId);
+    if (q.exec() && q.next()) {
+        t.id = q.value(0).toString();
+        t.goal = q.value(1).toString();
+        t.status = taskStatusFromString(q.value(2).toString());
+        t.currentStep = q.value(3).toInt();
+        t.maxSteps = q.value(4).toInt();
+        t.createdAt = q.value(5).toDateTime();
+        t.finishedAt = q.value(6).toDateTime();
+        t.errorMessage = q.value(7).toString();
+        t.summary = q.value(8).toString();
+    }
+    return t;
 }
 
 } // namespace Jarvis

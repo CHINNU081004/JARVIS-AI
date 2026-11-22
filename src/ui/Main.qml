@@ -159,6 +159,7 @@ ApplicationWindow {
                 Repeater {
                     model: [
                         { name: "Chat", icon: "chat" },
+                        { name: "Agent", icon: "agent" },
                         { name: "Workspace", icon: "folder" },
                         { name: "Memory", icon: "memory" },
                         { name: "Settings", icon: "settings" }
@@ -385,7 +386,206 @@ ApplicationWindow {
                 }
             }
 
-            // 2. Workspace View
+            // 2. Autonomous Agent Console View (Phase 2.1)
+            ColumnLayout {
+                anchors.fill: parent
+                anchors.margins: 14
+                spacing: 12
+                visible: activeTab === "Agent"
+
+                // Agent Header & Status Card
+                Rectangle {
+                    Layout.fillWidth: true
+                    implicitHeight: 70
+                    radius: 12
+                    color: "#081329"
+                    border.color: jarvis.agent.isAwaitingApproval ? "#f59e0b" : "#1e3a8a"
+                    border.width: jarvis.agent.isAwaitingApproval ? 1.5 : 1
+
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.margins: 12
+                        spacing: 14
+
+                        VectorIcon {
+                            name: "agent"
+                            color: jarvis.agent.isAwaitingApproval ? "#f59e0b" : "#00f0ff"
+                            width: 28; height: 28
+                        }
+
+                        ColumnLayout {
+                            spacing: 3
+                            Text {
+                                text: "Autonomous Agent Engine"
+                                color: "#00f0ff"
+                                font.bold: true
+                                font.pixelSize: 15
+                            }
+                            Text {
+                                text: {
+                                    if (jarvis.agent.isAwaitingApproval) return "Status: Action Awaiting User Approval";
+                                    if (jarvis.agent.status === 1) return "Status: Planning / Formulating Tool Step " + jarvis.agent.currentStep + " of " + jarvis.agent.maxSteps;
+                                    if (jarvis.agent.status === 3) return "Status: Executing Approved Operation...";
+                                    if (jarvis.agent.status === 4) return "Status: Task Completed Successfully";
+                                    if (jarvis.agent.status === 5) return "Status: Task Failed";
+                                    if (jarvis.agent.status === 6) return "Status: Task Cancelled";
+                                    return "Status: Ready for Autonomous Goal";
+                                }
+                                color: jarvis.agent.isAwaitingApproval ? "#f59e0b" : "#94a3b8"
+                                font.pixelSize: 11
+                            }
+                        }
+
+                        Item { Layout.fillWidth: true }
+
+                        GlassButton {
+                            text: "Abort Task"
+                            isDanger: true
+                            visible: jarvis.agent.status === 1 || jarvis.agent.status === 2 || jarvis.agent.status === 3
+                            onClicked: jarvis.agent.cancelTask()
+                        }
+                    }
+                }
+
+                // Approval Banner & Action Diff Preview (When Awaiting Approval)
+                Rectangle {
+                    Layout.fillWidth: true
+                    implicitHeight: approvalCol.implicitHeight + 24
+                    radius: 12
+                    color: "#181404"
+                    border.color: "#f59e0b"
+                    border.width: 1.5
+                    visible: jarvis.agent.isAwaitingApproval
+
+                    ColumnLayout {
+                        id: approvalCol
+                        anchors.fill: parent
+                        anchors.margins: 12
+                        spacing: 10
+
+                        RowLayout {
+                            VectorIcon { name: "bot"; color: "#f59e0b"; width: 18; height: 18 }
+                            Text {
+                                text: "Approval Required: " + jarvis.agent.pendingActionTitle
+                                color: "#fbbf24"
+                                font.bold: true
+                                font.pixelSize: 13
+                            }
+                        }
+
+                        ScrollView {
+                            Layout.fillWidth: true
+                            implicitHeight: Math.min(diffText.implicitHeight + 10, 160)
+                            clip: true
+
+                            Rectangle {
+                                width: parent.width
+                                implicitHeight: diffText.implicitHeight + 12
+                                radius: 8
+                                color: "#060912"
+                                border.color: "#332205"
+
+                                Text {
+                                    id: diffText
+                                    anchors.fill: parent
+                                    anchors.margins: 8
+                                    text: jarvis.agent.pendingActionDiff !== "" ? jarvis.agent.pendingActionDiff : "No diff available."
+                                    font.family: "Monospace"
+                                    font.pixelSize: 11
+                                    color: "#a3e635"
+                                    wrapMode: Text.WrapAnywhere
+                                }
+                            }
+                        }
+
+                        RowLayout {
+                            spacing: 10
+                            GlassButton {
+                                text: "Approve & Execute"
+                                onClicked: jarvis.agent.approveAction()
+                            }
+                            GlassButton {
+                                text: "Deny Action"
+                                isDanger: true
+                                onClicked: jarvis.agent.rejectAction("Disallowed by user.")
+                            }
+                            Item { Layout.fillWidth: true }
+                            Text {
+                                text: "JARVIS will not perform this modification without explicit approval."
+                                color: "#78716c"
+                                font.pixelSize: 10
+                            }
+                        }
+                    }
+                }
+
+                // Agent Reasoning & Thoughts Monitor
+                Rectangle {
+                    Layout.fillWidth: true
+                    implicitHeight: thoughtCol.implicitHeight + 20
+                    radius: 12
+                    color: "#08142c"
+                    border.color: "#1e3a8a"
+                    visible: jarvis.agent.activeThought !== ""
+
+                    ColumnLayout {
+                        id: thoughtCol
+                        anchors.fill: parent
+                        anchors.margins: 12
+                        spacing: 6
+
+                        Text {
+                            text: "Model Reasoning & Active Plan"
+                            color: "#38bdf8"
+                            font.bold: true
+                            font.pixelSize: 11
+                        }
+                        Text {
+                            text: jarvis.agent.activeThought
+                            color: "#cbd5e1"
+                            font.pixelSize: 12
+                            wrapMode: Text.Wrap
+                            Layout.fillWidth: true
+                        }
+                    }
+                }
+
+                Item { Layout.fillHeight: true }
+
+                // Agent Goal Input Row
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 8
+
+                    GlassTextField {
+                        id: agentGoalInput
+                        Layout.fillWidth: true
+                        placeholderText: "Enter autonomous agent goal (e.g. 'Create report.txt summarizing workspace files')..."
+                        leadingIcon: "agent"
+                        trailingClearButton: true
+                        enabled: jarvis.agent.status !== 1 && jarvis.agent.status !== 2 && jarvis.agent.status !== 3
+                        onAccepted: {
+                            if (text.trim() !== "") {
+                                jarvis.startAgentTask(text);
+                                text = "";
+                            }
+                        }
+                    }
+
+                    GlassButton {
+                        text: "Start Agent Task"
+                        enabled: jarvis.agent.status !== 1 && jarvis.agent.status !== 2 && jarvis.agent.status !== 3
+                        onClicked: {
+                            if (agentGoalInput.text.trim() !== "") {
+                                jarvis.startAgentTask(agentGoalInput.text);
+                                agentGoalInput.text = "";
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 3. Workspace View
             ColumnLayout {
                 anchors.fill: parent
                 anchors.margins: 14

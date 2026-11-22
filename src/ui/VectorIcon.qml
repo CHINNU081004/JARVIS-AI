@@ -61,6 +61,23 @@ Item {
                 ctx.beginPath();
                 ctx.arc(w * 0.5, h * 0.5, w * 0.38, 0, Math.PI * 2);
                 ctx.stroke();
+            } else if (root.name === "agent" || root.name === "robot") {
+                ctx.beginPath();
+                ctx.arc(w * 0.5, h * 0.45, w * 0.28, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(w * 0.5, h * 0.17);
+                ctx.lineTo(w * 0.5, h * 0.05);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.arc(w * 0.5, h * 0.05, 1.5, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.fillStyle = root.color;
+                ctx.fillRect(w * 0.38, h * 0.4, 2.5, 2.5);
+                ctx.fillRect(w * 0.58, h * 0.4, 2.5, 2.5);
+                ctx.beginPath();
+                ctx.arc(w * 0.5, h * 0.52, w * 0.12, 0, Math.PI);
+                ctx.stroke();
             } else if (root.name === "bot") {
                 ctx.beginPath();
                 // Screen outline
